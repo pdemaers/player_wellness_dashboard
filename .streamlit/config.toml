@@ -1,0 +1,7 @@
+[theme]
+base="light"
+primaryColor="#76aee0"       # pastel blue
+backgroundColor="#fdfdfb"    # near white with slight warmth
+secondaryBackgroundColor="#fff9cc"  # soft pastel yellow
+textColor="#002b5c"          # deep blue for readability
+font="sans serif"

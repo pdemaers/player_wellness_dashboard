@@ -1,0 +1,19 @@
+# Python cache and compiled files
+*.pyc
+__pycache__/
+
+# Local dev environment
+.venv/
+.env
+.vscode/
+.DS_Store
+
+# Logs
+*.log
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Dev-only utilities
+utils/generate_test_data.py
+utils/password_generator.py
