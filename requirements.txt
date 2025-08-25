@@ -12,6 +12,7 @@ cryptography==45.0.5
 dnspython==2.7.0
 extra-streamlit-components==0.1.80
 Faker==37.4.2
+fpdf==1.7.2
 gitdb==4.0.12
 GitPython==3.1.44
 idna==3.10
@@ -43,6 +44,7 @@ smmap==5.0.2
 streamlit==1.47.0
 streamlit-aggrid==1.1.6
 streamlit-authenticator==0.4.2
+streamlit-calendar==1.4.0
 streamlit-option-menu==0.4.0
 tenacity==9.1.2
 toml==0.10.2
