@@ -14,6 +14,7 @@ Notes:
 """
 
 from __future__ import annotations
+from typing import Any, Optional  # add this
 
 import streamlit as st
 import pandas as pd
@@ -24,7 +25,7 @@ from utils.ui_utils import get_table_height
 TEAMS = ["U18", "U21"]
 
 
-def render(mongo, user) -> None:
+def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
     """Render the Roster Management page (edit-only; no adds/deletes).
 
     Loads the roster via `mongo.get_roster_df()`, presents an edit table with

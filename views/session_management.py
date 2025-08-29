@@ -15,6 +15,7 @@ Import safety:
 """
 
 from __future__ import annotations
+from typing import Any, Optional  # add this
 
 import streamlit as st
 from datetime import date
@@ -28,7 +29,7 @@ from utils.calendar_view import (
     SESSION_TYPE_STYLES,
 )
 
-def render(mongo, user):
+def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
     """Render the Session Management admin page.
 
     Renders a form to add sessions and a calendar view of existing sessions.

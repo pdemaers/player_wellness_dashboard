@@ -2,9 +2,12 @@
 
 Welcome! This site hosts both **user guides** and **developer docs** for the club's Player Wellness Dashboard.
 
-!!! tip "Quick start"
-    - **Users**: Start in [User Guides](user-guides/index.md).
-    - **Developers**: See [Contributing](contributing.md) and the [API Reference](reference/api.md).
+Start here:
+
+- [Wellness Dashboard](dashboards/wellness_dashboard.md)
+- [RPE Dashboard](dashboards/rpe_dashboard.md)
+- [Session Management](admin/session_management.md)
+- [Roster Management](admin/roster_management.md)
 
 ## About
 - Built with **Streamlit** and **MongoDB** for U18/U21 workflows (wellness, RPE, sessions, PDP).
