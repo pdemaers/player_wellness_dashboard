@@ -1,3 +1,21 @@
+"""Session Management view.
+
+Provides an admin interface to:
+- Create new training sessions and matches (T1–T4, M).
+- Browse sessions in a calendar (with legend and basic click interactions).
+
+Data flow:
+    - New sessions are submitted to `MongoWrapper.add_session()`, which is
+      responsible for serializing dates, computing `weeknumber`, and generating
+      a stable `session_id` (e.g., YYYYMMDD + team).
+    - Existing sessions are read via `MongoWrapper.get_sessions_df(team=...)`.
+
+Import safety:
+    - This module must be import-safe for mkdocstrings; avoid side effects at import time.
+"""
+
+from __future__ import annotations
+
 import streamlit as st
 from datetime import date
 import pandas as pd
@@ -11,6 +29,47 @@ from utils.calendar_view import (
 )
 
 def render(mongo, user):
+    """Render the Session Management admin page.
+
+    Renders a form to add sessions and a calendar view of existing sessions.
+    Uses `mongo.add_session()` to insert and `mongo.get_sessions_df()` to read.
+
+    Args:
+        mongo: Database wrapper (e.g., `MongoWrapper`) with:
+            - `add_session(session: dict) -> bool`
+            - `get_sessions_df(team: str | None = None) -> pd.DataFrame`
+        user: Authenticated user context (not used here, included for consistency).
+
+    Returns:
+        None. Streamlit UI is rendered directly.
+
+    UI/Behavior:
+        - **New Session** form:
+            - Date (defaults to today)
+            - Team (U18/U21)
+            - Type (T1–T4, M)
+            - Duration (1–240 min)
+          On submit, delegates to `mongo.add_session()`. Success triggers `st.rerun()` to refresh the calendar.
+
+        - **Calendar**:
+            - Team filter (All/U18/U21)
+            - Legend with color coding per session type
+            - Click interactions:
+                - dateClick → info banner with clicked date
+                - eventClick → expander with raw event payload
+
+    Error handling:
+        - Wraps DB operations in try/except and displays `st.error` with details.
+        - Falls back to `mongo.get_sessions()` if `get_sessions_df()` is unavailable.
+
+    Notes:
+        - `MongoWrapper.add_session()` should:
+            - serialize `date` to a proper datetime
+            - compute `weeknumber` from ISO calendar
+            - generate `session_id` deterministically (e.g., `YYYYMMDD + team`)
+        - This page intentionally **does not** edit `session_id` once created.
+    """
+
     st.title(":material/calendar_month: Session Management")
 
     # --- Add Session Form ----------------------------------------------------
