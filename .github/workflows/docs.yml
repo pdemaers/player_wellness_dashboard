@@ -1,0 +1,24 @@
+name: Docs
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install docs dependencies
+        run: |
+          pip install -r requirements-docs.txt
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Build & deploy to GitHub Pages
+        run: mkdocs gh-deploy --force --clean

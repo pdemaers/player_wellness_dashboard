@@ -1,0 +1,71 @@
+site_name: Player Wellness Dashboard Docs
+site_description: Internal documentation and user manuals for the Player Wellness Dashboard.
+repo_url: https://github.com/pdemaers/player_wellness_dashboard
+repo_name: player_wellness_dashboard
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - content.code.copy
+    - content.action.edit
+    - content.tabs.link
+    - toc.follow
+  logo: assets/logo.png
+  favicon: assets/favicon.png
+  footer: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          # Allow importing modules from the repo root without packaging
+          paths: ["."]
+          options:
+            docstring_style: google
+            show_signature_annotations: true
+            merge_init_into_class: true
+            show_source: true
+  - git-revision-date-localized:
+      fallback_to_build_date: true
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - def_list
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.tabbed
+  - pymdownx.emoji
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+  - Admin:
+      - Roster Management: admin/roster_management.md
+      - Session Management: admin/session_management.md
+      - PDP Structure: admin/pdp_structure.md
+  - Dashboards:
+      - Wellness Dashboard: dashboards/wellness_dashboard.md
+      - RPE Dashboard: dashboards/rpe_dashboard.md
+      - Session Dashboard: dashboards/session_dashboard.md
+  - PDP:
+      - Create PDP: pdp/create_pdp.md
+      - PDP Library: pdp/pdp_library.md
+  - Data:
+      - Data Model: reference/data-model.md
+      - Pipeline (Reg → Dashboard): data/pipeline.md
+      - Glossary: data/glossary.md
+  - Reference:
+      - Technical reference: reference/api.md
+      - Changelog: reference/changelog.md
+  - Contributing: contributing.md

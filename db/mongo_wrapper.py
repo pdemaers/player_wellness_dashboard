@@ -1,3 +1,15 @@
+"""MongoDB wrapper for the Player Wellness Dashboard.
+
+This module defines:
+- `MongoWrapper`: typed access layer for collections (`roster`, `player_wellness`, `player_rpe`, `sessions`, `pdp_structure`).
+- `DatabaseError`: custom error wrapper around pymongo exceptions.
+
+Notes:
+    - Timestamps are stored in UTC; display uses Europe/Brussels.
+    - This module must be import-safe (no DB side effects on import).
+    - All pymongo exceptions are re-raised as `DatabaseError`.
+"""
+
 from pymongo import MongoClient
 import pandas as pd
 from datetime import datetime, date, time
@@ -6,6 +18,27 @@ class DatabaseError(Exception):
     pass
 
 class MongoWrapper:
+    """Typed access layer for MongoDB collections.
+
+    Collections:
+        - roster: player metadata
+        - player_wellness: daily wellness entries
+        - player_rpe: RPE post-session entries
+        - sessions: training sessions and matches
+        - pdp_structure: Personal Development Plan topic structures
+
+    Responsibilities:
+        - Provide pandas DataFrames for dashboards
+        - Normalize types (`player_id`, dates, timestamps)
+        - Compute derived fields (weeknumber, session_id, effective_minutes)
+        - Wrap pymongo errors as DatabaseError
+
+    Indexes (recommended):
+        - roster: {player_id: 1}
+        - player_wellness: {timestamp: 1}, {player_id: 1, timestamp: 1}
+        - player_rpe: {session_id: 1}, {player_id: 1}, {timestamp: 1}
+        - sessions: {session_id: 1} (unique), {team: 1, weeknumber: 1}
+    """
 
     # --------------------
     # Database connection
@@ -29,6 +62,14 @@ class MongoWrapper:
     # -----------------------
 
     def get_roster_df(self) -> pd.DataFrame:
+        """Return the full roster as a pandas DataFrame.
+
+        Returns:
+            DataFrame: All players with fields `_id` excluded.
+
+        Raises:
+            DatabaseError: If the query fails.
+        """
         try:
             data = list(self.db.roster.find({}, {"_id": 0}))
             return pd.DataFrame(data)
@@ -36,7 +77,17 @@ class MongoWrapper:
             raise DatabaseError(f"Failed to load roster: {e}")
         
     def save_roster_df(self, df: pd.DataFrame) -> bool:
-        """Replace the full roster collection with updated DataFrame."""
+        """Replace the roster collection with a new DataFrame.
+
+        Args:
+            df: DataFrame with roster documents.
+
+        Returns:
+            True if the operation succeeded.
+
+        Raises:
+            DatabaseError: On MongoDB error.
+        """
         try:
             self.db.roster.delete_many({})
             self.db.roster.insert_many(df.to_dict("records"))
@@ -49,11 +100,26 @@ class MongoWrapper:
     # -------------------------
 
     def get_pdp_structure_for_team(self, team: str) -> dict:
-        """Fetch the PDP structure for a given team (e.g. 'U21')."""
+        """Fetch the PDP structure for a given team.
+
+        Args:
+            team: Team code (e.g. "U21").
+
+        Returns:
+            dict: The PDP structure document, or None if not found.
+        """
         return self.db["pdp_structure"].find_one({"_id": f"{team}_structure"})
 
     def update_pdp_structure_for_team(self, team: str, updated_doc: dict) -> bool:
-        """Save or overwrite the PDP structure for a given team."""
+        """Save or update the PDP structure for a team.
+
+        Args:
+            team: Team code.
+            updated_doc: Updated PDP structure document.
+
+        Returns:
+            True if the document was updated or inserted.
+        """
         updated_doc["_id"] = f"{team}_structure"
         result = self.db["pdp_structure"].replace_one(
             {"_id": updated_doc["_id"]},
@@ -71,6 +137,21 @@ class MongoWrapper:
     # -------------------------
 
     def add_session(self, session_data: dict) -> bool:
+        """Insert a new training session or match.
+
+        Args:
+            session_data: Dict with at least `date`, `team`, `session_type`, `duration`.
+
+        Returns:
+            True if insertion succeeded.
+
+        Raises:
+            DatabaseError: On MongoDB error.
+
+        Notes:
+            - `session_id` is generated as YYYYMMDD + team.
+            - `weeknumber` is derived from ISO week of `date`.
+        """
         try:
             # Ensure datetime format for MongoDB
             raw_date = session_data["date"]
@@ -101,6 +182,22 @@ class MongoWrapper:
 
     # Get the data for the datatable view 
     def get_wellness_matrix(self, team: str | None = None) -> pd.DataFrame:
+        """Return weekly average wellness per player in pivot form.
+
+        Args:
+            team: Optional filter ("U18" or "U21").
+
+        Returns:
+            DataFrame with player_name as rows and weeks as columns. 
+            Cell values formatted as "avg_feeling | avg_sleeping".
+
+        Raises:
+            DatabaseError: On MongoDB error.
+
+        Notes:
+            - Season start hard-coded as first Monday of August 2025.
+            - Week labels formatted as "W00", "W01", ...
+        """
         try:
             # Load wellness entries
             wellness_docs = list(self.db.player_wellness.find({}, {"_id": 0}))
@@ -230,7 +327,25 @@ class MongoWrapper:
     # RPE dashboard
     # -------------------
 
-    def get_rpe_loads(self, team=None):
+    def get_rpe_loads(self, team: str | None = None) -> pd.DataFrame:
+        """Aggregate weekly RPE loads per player.
+
+        Args:
+            team: Optional team filter.
+
+        Returns:
+            DataFrame with columns: player_id, player_name, team, week, load, acute, chronic, acr.
+
+        Raises:
+            DatabaseError: On MongoDB errors.
+
+        Pipeline:
+            - Lookup sessions and roster
+            - Compute effective_minutes
+            - Compute load = RPE * minutes
+            - Group by player/week
+            - Add rolling acute:chronic ratio
+        """
         pipeline = [
             # Join with sessions collection
             {"$lookup": {
