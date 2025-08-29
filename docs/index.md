@@ -1,4 +1,4 @@
-# Player Wellness Dashboard
+# Player Wellness Dashboard and Management app
 
 Welcome! This site hosts both **user guides** and **developer docs** for the club's Player Wellness Dashboard.
 
@@ -7,9 +7,9 @@ Welcome! This site hosts both **user guides** and **developer docs** for the clu
     - **Developers**: See [Contributing](contributing.md) and the [API Reference](reference/api.md).
 
 ## About
-- Built with **Streamlit** and **MongoDB** for U18/U21 workflows (wellness, RPE, sessions, PDP, attendance).
+- Built with **Streamlit** and **MongoDB** for U18/U21 workflows (wellness, RPE, sessions, PDP).
 - This documentation is generated with **MkDocs Material** and **mkdocstrings** for auto API docs.
 
 ## Support
-- Internal contact: _add contact here_  
+- Internal contact: Patrick Demaerschalk  
 - Issues: open a ticket in the repository.
