@@ -22,6 +22,7 @@ Admin page to correct **names** and **team** for existing players.
 
 ## How to add/remove a player (admin)
 Use **MongoDB Compass** (or equivalent):
+
 1. Open the `roster` collection.
 2. Insert a new document with fields:
     - `player_id` (string or int, consistent with your setup)

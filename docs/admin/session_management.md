@@ -4,12 +4,14 @@ Create and browse sessions (T1–T4 training, M = match) used by the dashboards 
 
 ## New Session
 Fields:
+
 - **Date** – defaults to today.
 - **Team** – U18 / U21.
 - **Type** – T1–T4 or **M** (match).
 - **Duration (min)** – 1–240.
 
 When you click **Add Session**:
+
 - The app calls `add_session()` in the database layer.
 - The DB layer serializes the date, computes `weeknumber`, and generates a **stable `session_id`** (e.g., `YYYYMMDD` + team).
 - On success the calendar refreshes automatically.
