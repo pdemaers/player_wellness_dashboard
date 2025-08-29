@@ -12,13 +12,28 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout (with full history & tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # <-- needed so git-cliff can see history & tags
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Install docs dependencies
         run: |
           pip install -r requirements-docs.txt
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Install git-cliff
+        run: pip install git-cliff
+
+      - name: Generate last-30-days changelog
+        run: |
+          SINCE=$(date -d "30 days ago" +%Y-%m-%d)
+          git-cliff --config .gitcliff.toml --since "$SINCE" > docs/reference/changelog.md
+
       - name: Build & deploy to GitHub Pages
         run: mkdocs gh-deploy --force --clean

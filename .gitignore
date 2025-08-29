@@ -3,7 +3,9 @@
 __pycache__/
 
 # Local dev environment
+site/
 .venv/
+.venv-docs/
 .env
 .vscode/
 .DS_Store

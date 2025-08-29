@@ -1,12 +1,16 @@
 # Changelog
-
-This project follows a simplified [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
-
 ## [Unreleased]
 
-### Added
-- Initial documentation site scaffold with user guides and API.
 
-### Changed
+### <!-- 3 -->📚 Documentation
 
-### Fixed
+- basic mkdocs documentation setup (2ec7442…)
+
+- update index.md (d42aa77…)
+
+- provided more details about roster management (d3cbf90…)
+
+- added docstrings and .md file for session management (74f1ab7…)
+
+- added blank line before numbered list to give good rendering (6d0e316…)
+
