@@ -4,19 +4,23 @@ from copy import deepcopy
 import pandas as pd
 import uuid
 from utils.ui_utils import get_table_height
+from utils.team_selector import team_selector
+from main import TEAMS
 
 def render(mongo, user):
     st.title(":material/fact_check: PDP Structure Management")
-    st.caption("Edit the Personal Development Plan (PDP) structure per team")
+    st.subheader("Edit the Personal Development Plan (PDP) structure per team.")
 
-    teams = ["U21", "U18"]
-    selected_team = st.selectbox("Select team", teams)
+    team = team_selector(TEAMS)
+    if not team:
+        st.info("Select a team to continue.", icon=":material/info:")
+        return
 
-    structure_doc = mongo.get_pdp_structure_for_team(selected_team)
+    structure_doc = mongo.get_pdp_structure_for_team(team)
     if not structure_doc:
-        st.warning(f"No structure found for {selected_team}. Initializing empty structure.")
+        st.warning(f"No structure found for {team}. Initializing empty structure.")
         structure_doc = {
-            "_id": f"{selected_team}_structure",
+            "_id": f"{team}_structure",
             "version": 1,
             "created_at": datetime.now().strftime("%Y-%m-%d"),
             "structure": {}
@@ -101,7 +105,7 @@ def render(mongo, user):
             "version": structure_doc.get("version", 1) + 1,
             "created_at": datetime.now().strftime("%Y-%m-%d")
         }
-        success = mongo.update_pdp_structure_for_team(selected_team, updated_doc)
+        success = mongo.update_pdp_structure_for_team(team, updated_doc)
         if success:
             st.success("Structure updated successfully!", icon=":material/check_circle:")
         else:
