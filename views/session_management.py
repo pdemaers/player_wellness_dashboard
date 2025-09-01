@@ -21,6 +21,9 @@ import streamlit as st
 from datetime import date
 import pandas as pd
 
+from utils.team_selector import team_selector
+from main import TEAMS
+
 # Utilities
 from utils.calendar_view import (
     sessions_df_to_events,
@@ -86,7 +89,7 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
         with col4:
             duration = st.number_input("Duration (min)", min_value=1, max_value=240, step=5)
 
-        submitted = st.form_submit_button("Add Session", icon=":material/save:")
+        submitted = st.form_submit_button("Add Session", type="primary", icon=":material/save:")
         if submitted:
             session = {
                 "date": session_date,         # mongo wrapper should serialize dates
@@ -106,16 +109,18 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
     # --- Calendar View -------------------------------------------------------
     st.subheader("Calendar")
 
-    team_filter = st.selectbox("Filter by Team", ["All", "U18", "U21"], key="sess_team_filter")
-    selected_team = None if team_filter == "All" else team_filter
+    team = team_selector(TEAMS)
+    if not team:
+            st.info("Select a team to continue.")
+            return
 
     # Fetch sessions as DataFrame (use your existing wrapper)
     try:
-        df = mongo.get_sessions_df(team=selected_team)
+        df = mongo.get_sessions_df(team=team)
     except AttributeError:
         # Fallback if you only have a list API
         try:
-            docs = mongo.get_sessions(team=selected_team)  # list[dict]
+            docs = mongo.get_sessions(team=team)  # list[dict]
             df = pd.DataFrame(docs) if docs else pd.DataFrame()
         except Exception as e:
             st.error(f"Failed to load sessions: {e}")
@@ -128,7 +133,7 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
 
     state = render_calendar(
         events=events,
-        key=f"calendar_{selected_team or 'all'}",
+        key=f"calendar_{team}",
         options=None,  # use defaults; supply your own dict to override
     )
 

@@ -13,8 +13,12 @@ Notes:
 from pymongo import MongoClient
 import pandas as pd
 from datetime import datetime, date, time
+from typing import List, Dict, Any, Optional
+#from pymongo.collection import Collection
+#from pymongo import ASCENDING, DESCENDING
 
 class DatabaseError(Exception):
+    """Lightweight DB error to surface user-friendly messages in the UI."""
     pass
 
 class MongoWrapper:
@@ -635,3 +639,102 @@ class MongoWrapper:
         collection = self.db["player_pdp"]
         results = list(collection.find({"player_id": player_id}))
         return results
+
+    # -----------------------------
+    # Session attendance functions
+    # -----------------------------
+
+    def get_recent_sessions(self, team: str, limit: int = 6, up_to_date: Optional[date] = None) -> List[Dict[str, Any]]:
+        """Return up to `limit` most recent sessions for a team (date DESC).
+
+        Notes:
+            - When `up_to_date` is provided, results are restricted to that day or earlier.
+            - Useful for building a date-only dropdown (dedup by date in caller).
+        """
+        try:
+            q: Dict[str, Any] = {"team": team}
+            if up_to_date:
+                end = datetime.combine(up_to_date, time.max)
+                q["date"] = {"$lte": end}
+            cur = (
+                self.db["sessions"]
+                .find(q, {"_id": 0})
+                .sort([("date", -1)])  # DESC
+                .limit(limit * 2)       # fetch extra to allow date-dedup client-side
+            )
+            records = list(cur)
+            # Stable sort (some docs may have string dates)
+            def _key(s):
+                d = s.get("date")
+                if isinstance(d, datetime):
+                    return d
+                if isinstance(d, date):
+                    return datetime.combine(d, time.min)
+                try:
+                    return datetime.fromisoformat(str(d))
+                except Exception:
+                    return datetime.min
+            records.sort(key=_key, reverse=True)
+            return records[: (limit * 2)]
+        except Exception as e:
+            raise DatabaseError(f"Failed to fetch recent sessions: {e}") from e
+
+    def get_roster_players(self, team: str) -> List[Dict[str, Any]]:
+        """Return all players for a team from `roster`."""
+        try:
+            return list(self.db["roster"].find({"team": team}, {"_id": 0}))
+        except Exception as e:
+            raise DatabaseError(f"Failed to fetch roster: {e}") from e
+
+    def upsert_attendance_full(
+        self,
+        session_id: str,
+        team: str,
+        present_ids: List[int],
+        absent_items: List[Dict[str, Any]],
+        user: str,
+    ) -> None:
+        """Insert or update full attendance (present + absent) for a session.
+
+        Args:
+            session_id: Session identifier (e.g., "20250901U21").
+            team: "U18" | "U21".
+            present_ids: Player IDs marked present (deduped + sorted in this method).
+            absent_items: List of {"player_id": int, "reason": str}.
+            user: Display name or identifier of the editor.
+
+        Notes:
+            - Overwrites both `present` and `absent` arrays atomically.
+            - Validates absence reasons against the canonical set.
+        """
+        VALID = {"injury", "illness", "excused", "other team", "AWOL"}
+        try:
+            present_clean = sorted(set(int(pid) for pid in present_ids))
+            absent_clean = []
+            for item in absent_items:
+                pid = int(item["player_id"])
+                reason = str(item["reason"])
+                if reason not in VALID:
+                    raise ValueError(f"Invalid absence reason '{reason}' for player_id {pid}")
+                absent_clean.append({"player_id": pid, "reason": reason})
+
+            now = datetime.utcnow()
+            self.db["attendance"].update_one(
+                {"session_id": session_id},
+                {
+                    "$setOnInsert": {
+                        "session_id": session_id,
+                        "team": team,
+                        "created": now,
+                    },
+                    "$set": {
+                        "present": present_clean,
+                        "absent": absent_clean,
+                        "last_updated": now,
+                        "user": user,
+                    },
+                },
+                upsert=True,
+            )
+        except Exception as e:
+            raise DatabaseError(f"Failed to upsert attendance: {e}") from e
