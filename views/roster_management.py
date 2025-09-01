@@ -22,7 +22,7 @@ from datetime import datetime
 from db.mongo_wrapper import DatabaseError
 from utils.ui_utils import get_table_height
 
-TEAMS = ["U18", "U21"]
+from main import TEAMS
 
 
 def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
@@ -54,7 +54,7 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
     try:
         df: pd.DataFrame = mongo.get_roster_df()
     except DatabaseError as e:
-        st.error(str(e))
+        st.error(str(e), icon=":material/error_outline")
         return
 
     # Keep a frozen copy of the original IDs for validation later
@@ -83,31 +83,31 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
             use_container_width=True,
         )
     except Exception as e:
-        st.error(f"Failed to render editor: {e}")
+        st.error(f"Failed to render editor: {e}", icon=":material/error_outline")
         return
 
-    if st.button("Save changes", icon=":material/save:"):
+    if st.button("Save changes", type="primary", icon=":material/save:"):
         # Safety checks before saving
         try:
             # Ensure player_id set is unchanged
             edited_ids = set(pd.to_numeric(edited["player_id"], errors="coerce").astype("Int64").dropna().astype(int))
             if edited_ids != original_ids:
                 st.error(
-                    ":material/block: Player additions/removals are not allowed here. "
-                    "Please revert changes or perform roster updates directly in MongoDB."
+                    "Player additions/removals are not allowed here. Please revert changes or perform roster updates directly in MongoDB.",
+                    icon=":material/error_outline"
                 )
                 return
 
             # Basic per-row validation (optional: add stricter rules here)
             if edited[["player_first_name", "player_last_name", "team"]].isnull().any().any():
-                st.error(":material/error: Empty values detected. Please complete all required fields.")
+                st.error("Empty values detected. Please complete all required fields.", icon=":material/error_outline")
                 return
 
             if mongo.save_roster_df(edited):
-                st.success("Roster updated.")
+                st.success("Roster updated.", icon=":material/check_box")
             else:
-                st.error(":material/error: Failed to save roster.")
+                st.error("Failed to save roster.", icon=":material/error_outline")
         except DatabaseError as e:
             st.error(str(e))
         except Exception as e:
-            st.error(f"Validation or save failed: {e}")
+            st.error(f"Validation or save failed: {e}", icon=":material/error_outline")
