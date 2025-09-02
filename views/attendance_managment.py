@@ -92,7 +92,7 @@ def render(mongo, user):
         default_idx = all_dates_desc.index(date.today())
 
     date_labels = [_ddmmyyyy(d) for d in all_dates_desc]
-    selected_label = st.selectbox("Session date (dd/mm/yyyy)", options=date_labels, index=default_idx)
+    selected_label = st.selectbox("Session date (dd/mm/yyyy)", options=date_labels, index=default_idx, width=200)
     selected_date = all_dates_desc[date_labels.index(selected_label)]
     session = date_to_session[selected_date]
     session_id = session.get("session_id")
@@ -141,23 +141,24 @@ def render(mongo, user):
     absentees = [p for p in players if p["player_id"] not in present_set]
 
     st.divider()
-    st.subheader(":material/group_off: Absentees & Reasons")
-    st.caption("Choose a reason for each player not selected as present.")
+    st.subheader(":material/person_off: Absentees & Reasons")
+    st.caption("Pick a reason for each player not selected as present.")
 
     absentee_reasons: Dict[int, str] = {}
-    for p in absentees:
-        with st.container(border=True, vertical_alignment="center"):
-            c1, c2 = st.columns([3, 2])
-            with c1:
-                st.write(f"**{p['name']}**")   # 👈 only name now
-            with c2:
-                absentee_reasons[p["player_id"]] = st.selectbox(
-                    "Reason",
-                    ABSENCE_REASONS,
-                    index=0,
-                    key=f"abs_{session_id}_{p['player_id']}",
-                    label_visibility="collapsed"
-                )
+
+    if absentees:
+        for p in absentees:
+            pid = p["player_id"]
+            # Use the player's name as the label for a compact UI
+            absentee_reasons[pid] = st.selectbox(
+                label=p["name"],
+                options=ABSENCE_REASONS,
+                index=0,
+                key=f"abs_{session_id}_{pid}",
+                width=200
+            )
+    else:
+        st.info("All players are marked present. No absentees to register.")
 
     # --- SAVE (ONE STEP) ----------------------------------------------------
     if st.button("Save attendance", type="primary", icon=":material/save:"):
