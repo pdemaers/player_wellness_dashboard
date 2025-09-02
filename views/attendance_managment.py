@@ -18,12 +18,10 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Dict, Any, List
 from utils.team_selector import team_selector
-from main import TEAMS
 
 import streamlit as st
 
-ABSENCE_REASONS = ["injury", "illness", "excused", "other team", "AWOL"]
-
+from utils.constants import TEAMS, ABSENCE_REASONS
 
 def _ddmmyyyy(d: date | datetime | str) -> str:
     """Render a date-like field as dd/mm/yyyy (best-effort)."""

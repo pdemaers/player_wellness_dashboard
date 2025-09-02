@@ -4,8 +4,7 @@ import streamlit as st
 from db.mongo_wrapper import MongoWrapper, DatabaseError
 from views import roster_management, session_management, wellness_dashboard, rpe_dashboard, session_dashboard, pdp_structure_management, player_pdp, pdp_library, attendance_managment
 
-# Constants
-TEAMS = ["U18", "U21"]
+from utils.constants import TEAMS
 
 # --- ROLE CONFIG --------------------------------------------------------------
 PAGES = {

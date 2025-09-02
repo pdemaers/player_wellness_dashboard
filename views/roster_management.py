@@ -22,7 +22,7 @@ from datetime import datetime
 from db.mongo_wrapper import DatabaseError
 from utils.ui_utils import get_table_height
 
-from main import TEAMS
+from utils.constants import TEAMS
 
 
 def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
