@@ -19,3 +19,4 @@ site/
 # Dev-only utilities
 utils/generate_test_data.py
 utils/password_generator.py
+utils/deduplicate_rpe.py
