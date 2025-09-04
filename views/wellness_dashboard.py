@@ -1,21 +1,24 @@
 import streamlit as st
 import plotly.express as px
 from utils.ui_utils import get_table_height
+from utils.team_selector import team_selector
 from datetime import datetime, date
 import pandas as pd
 
 def render(mongo, user):
     st.title(":material/monitor_heart: Wellness Dashboard")
 
-    team_filter = st.selectbox("Filter by Team", ["All", "U18", "U21"])
-    team = None if team_filter == "All" else team_filter
+    team = team_selector(TEAMS)
+    if not team:
+        st.info("Select a team to continue.", icon=":material/info:")
+        return
 
     tab1, tab2, tab3 = st.tabs([":material/today: Today's Check", ":material/date_range: Weekly Averages", ":material/all_inclusive: All entries"])
 
 # --- TAB 1: Pre training check ---
     with tab1:
         try:
-            st.subheader(":material/calendar_today: Today's Wellness Check")
+            st.subheader(":material/today: Today's Wellness Check")
 
             # Use global team value
             if team is None:
@@ -78,6 +81,8 @@ def render(mongo, user):
     # --- TAB 2: Weekly Matrix ---
     with tab2:
         try:
+            st.subheader(":material/all_inclusive: All Wellness entries")
+            
             df = mongo.get_wellness_matrix(team=team)
             if df.empty:
                 st.info("No wellness data found.")

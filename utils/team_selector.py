@@ -18,6 +18,7 @@ def team_selector(teams: list[str], key: str = "team") -> str:
         "Select team",
         options=teams,
         selection_mode="single",
+        default=None,
         key=key,
     )
     return selected

@@ -5,7 +5,7 @@ import pandas as pd
 import uuid
 from utils.ui_utils import get_table_height
 from utils.team_selector import team_selector
-from main import TEAMS
+from utils.constants import TEAMS
 
 def render(mongo, user):
     st.title(":material/fact_check: PDP Structure Management")
