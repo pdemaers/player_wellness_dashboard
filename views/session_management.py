@@ -22,7 +22,7 @@ from datetime import date
 import pandas as pd
 
 from utils.team_selector import team_selector
-from utils.constants import TEAMS, SESSION_TYPE_STYLES
+from utils.constants import TEAMS
 
 # Utilities
 from utils.calendar_view import (

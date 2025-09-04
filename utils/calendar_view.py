@@ -12,6 +12,7 @@ This module is UI-safe: it surfaces errors to Streamlit but won't crash your app
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from datetime import date, datetime
+from utils.constants import SESSION_TYPE_STYLES
 
 import pandas as pd
 import streamlit as st
@@ -23,14 +24,14 @@ except Exception as _imp_err:  # pragma: no cover
     _st_calendar = None
 
 
-# --- Public color map for legends & consistent styling -----------------------
-SESSION_TYPE_STYLES: Dict[str, Dict[str, str]] = {
-    "T1": {"color": "#2563eb", "label": "T1 - Low Intensity"},   # blue
-    "T2": {"color": "#10b981", "label": "T2 - Aerobic/Tech"},    # green
-    "T3": {"color": "#f59e0b", "label": "T3 - Mixed/Load"},      # amber
-    "T4": {"color": "#ef4444", "label": "T4 - High Intensity"},  # red
-    "M":  {"color": "#7c3aed", "label": "Match"},                # purple
-}
+# # --- Public color map for legends & consistent styling -----------------------
+# SESSION_TYPE_STYLES: Dict[str, Dict[str, str]] = {
+#     "T1": {"color": "#2563eb", "label": "T1 - Low Intensity"},   # blue
+#     "T2": {"color": "#10b981", "label": "T2 - Aerobic/Tech"},    # green
+#     "T3": {"color": "#f59e0b", "label": "T3 - Mixed/Load"},      # amber
+#     "T4": {"color": "#ef4444", "label": "T4 - High Intensity"},  # red
+#     "M":  {"color": "#7c3aed", "label": "Match"},                # purple
+# }
 
 
 def _to_iso_date(val: Any) -> Optional[str]:
