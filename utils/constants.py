@@ -15,3 +15,5 @@ SESSION_TYPE_STYLES: Dict[str, Dict[str, str]] = {
     "T4": {"color": "#ef4444", "label": "T4 - High Intensity"},  # red
     "M":  {"color": "#7c3aed", "label": "Match"},                # purple
 }
+
+EXEMPT = [21511,21772,21007,21984]
