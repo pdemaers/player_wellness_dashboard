@@ -2,7 +2,7 @@
 import streamlit as st
 from services.rpe_quality_service import season_rpe_quality
 
-def render(mongo):
+def render(mongo, user):
     """
     Render the **RPE Data Quality** admin view in the Streamlit app.
 
@@ -71,7 +71,7 @@ def render(mongo):
     st.subheader("Anomalies")
     st.dataframe(res["anomalies_df"], use_container_width=True, hide_index=True) if not res["anomalies_df"].empty else st.success("No anomaly rows 🎉")
 
-    # CSV exports
-    st.download_button("Download Compliance (CSV)", res["compliance_df"].to_csv(index=False), file_name=f"rpe_compliance_{team}_season.csv", mime="text/csv")
-    st.download_button("Download Duplicates (CSV)", res["duplicates_df"].to_csv(index=False), file_name=f"rpe_duplicates_{team}_season.csv", mime="text/csv")
-    st.download_button("Download Anomalies (CSV)", res["anomalies_df"].to_csv(index=False), file_name=f"rpe_anomalies_{team}_season.csv", mime="text/csv")
+    # # CSV exports
+    # st.download_button("Download Compliance (CSV)", res["compliance_df"].to_csv(index=False), file_name=f"rpe_compliance_{team}_season.csv", mime="text/csv")
+    # st.download_button("Download Duplicates (CSV)", res["duplicates_df"].to_csv(index=False), file_name=f"rpe_duplicates_{team}_season.csv", mime="text/csv")
+    # st.download_button("Download Anomalies (CSV)", res["anomalies_df"].to_csv(index=False), file_name=f"rpe_anomalies_{team}_season.csv", mime="text/csv")
