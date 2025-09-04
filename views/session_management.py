@@ -22,14 +22,13 @@ from datetime import date
 import pandas as pd
 
 from utils.team_selector import team_selector
-from utils.constants import TEAMS
+from utils.constants import TEAMS, SESSION_TYPE_STYLES
 
 # Utilities
 from utils.calendar_view import (
     sessions_df_to_events,
     render_calendar,
     render_legend,
-    SESSION_TYPE_STYLES,
 )
 
 def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:

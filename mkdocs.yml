@@ -54,6 +54,7 @@ nav:
       - Roster Management: admin/roster_management.md
       - Session Management: admin/session_management.md
       - PDP Structure: admin/pdp_structure.md
+      - Attendance: admin/attendance_management.md
   - Dashboards:
       - Wellness Dashboard: dashboards/wellness_dashboard.md
       - RPE Dashboard: dashboards/rpe_dashboard.md
