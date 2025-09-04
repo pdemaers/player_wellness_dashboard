@@ -136,8 +136,8 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
         options=None,  # use defaults; supply your own dict to override
     )
 
-    st.markdown("**Legend**")
-    render_legend(SESSION_TYPE_STYLES)
+    # st.markdown("**Legend**")
+    # render_legend(SESSION_TYPE_STYLES)
 
     # Optional: react to interactions
     if state.get("callback") == "dateClick":
