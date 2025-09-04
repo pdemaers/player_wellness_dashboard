@@ -11,7 +11,8 @@ from views import (
     pdp_structure_management, 
     player_pdp, 
     pdp_library, 
-    attendance_management
+    attendance_management,
+    rpe_data_quality
 )
 
 from utils.constants import TEAMS
@@ -27,6 +28,7 @@ PAGES = {
     "Create PDP":        lambda mongo, user: player_pdp.render(mongo, user=user),
     "PDP Library":       lambda mongo, user: pdp_library.render(mongo, user=user),
     "Attendance":        lambda mongo, user: attendance_management.render(mongo, user=user),
+    "RPE data quality":  lambda mongo, user: rpe_data_quality.render(mongo, user=user),
 }
 
 PAGE_ICONS = {
@@ -39,6 +41,7 @@ PAGE_ICONS = {
     "Create PDP": "file-earmark-plus",
     "PDP Library": "archive",
     "Attendance": "person-check",
+    "RPE data quality": "database-fill-exclamation"
 }
 
 ROLE_ALLOWED_PAGES = {

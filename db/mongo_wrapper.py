@@ -328,7 +328,7 @@ class MongoWrapper:
             raise DatabaseError(f"Failed to generate wellness overview: {e}")
     
     # -------------------    
-    # RPE dashboard
+    # RPE fetchers
     # -------------------
 
     def get_rpe_loads(self, team: str | None = None) -> pd.DataFrame:
@@ -538,6 +538,15 @@ class MongoWrapper:
 
         except Exception as e:
             raise DatabaseError(f"Failed to generate RPE overview: {e}")
+        
+    def get_player_rpe_df(self) -> pd.DataFrame:
+        """Return all RPE registrations (current season stored in DB)."""
+        try:
+            proj = {"_id": 0, "player_id": 1, "session_id": 1, "date": 1,
+                    "rpe_score": 1, "training_minutes": 1, "timestamp": 1}
+            return pd.DataFrame(list(self.db.player_rpe.find({}, proj)))
+        except Exception as e:
+            raise DatabaseError(f"Failed to load RPE: {e}")
 
     # -------------------    
     # Session dashboard
