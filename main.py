@@ -2,7 +2,7 @@ from streamlit_option_menu import option_menu
 from streamlit_authenticator import Authenticate
 import streamlit as st
 from db.mongo_wrapper import MongoWrapper, DatabaseError
-from views import roster_management, session_management, wellness_dashboard, rpe_dashboard, session_dashboard, pdp_structure_management, player_pdp, pdp_library, attendance_managment
+from views import roster_management, session_management, wellness_dashboard, rpe_dashboard, session_dashboard, pdp_structure_management, player_pdp, pdp_library, attendance_management
 
 from utils.constants import TEAMS
 
@@ -16,7 +16,7 @@ PAGES = {
     "Session Dashboard": lambda mongo, user: session_dashboard.render(mongo, user=user),
     "Create PDP":        lambda mongo, user: player_pdp.render(mongo, user=user),
     "PDP Library":       lambda mongo, user: pdp_library.render(mongo, user=user),
-    "Attendance":        lambda mongo, user: attendance_managment.render(mongo, user=user),
+    "Attendance":        lambda mongo, user: attendance_management.render(mongo, user=user),
 }
 
 PAGE_ICONS = {
