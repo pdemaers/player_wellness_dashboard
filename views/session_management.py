@@ -22,7 +22,7 @@ from datetime import date
 import pandas as pd
 
 from utils.team_selector import team_selector
-from utils.constants import TEAMS
+from utils.constants import TEAMS, SESSION_TYPE_STYLES
 
 # Utilities
 from utils.calendar_view import (
@@ -82,9 +82,9 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
         with col1:
             session_date = st.date_input("Date", value=date.today())
         with col2:
-            team = st.selectbox("Team", ["U18", "U21"])
+            team = st.selectbox("Team", options=TEAMS)
         with col3:
-            session_type = st.selectbox("Type", ["T1", "T2", "T3", "T4", "M"])
+            session_type = st.selectbox("Type", options=list(SESSION_TYPE_STYLES.keys()))
         with col4:
             duration = st.number_input("Duration (min)", min_value=1, max_value=240, step=5)
 
