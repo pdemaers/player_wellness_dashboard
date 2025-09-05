@@ -82,7 +82,7 @@ def render(mongo, user):
     # --- TAB 2: Weekly Matrix ---
     with tab2:
         try:
-            st.subheader(":material/all_inclusive: All Wellness entries")
+            st.subheader(":material/date_range: Weekly Wellness Averages")
             
             df = mongo.get_wellness_matrix(team=team)
             if df.empty:
@@ -95,12 +95,12 @@ def render(mongo, user):
 
     # --- TAB 3: Daily overview ---
     with tab3:
-        st.subheader("📅 Daily Wellness Entry Overview")
+        st.subheader(":material/all_inclusive: All Wellness Entries")
 
         try:
             pivot_df = mongo.get_daily_wellness_overview(team=team)
             if pivot_df.empty:
-                st.info("No wellness entries available.")
+                st.info("No wellness entries available.", icon=":material/info:")
             else:
                 # --- Build ISO week options from pivot columns (which are date strings) ---
                 # Parse columns to dates
