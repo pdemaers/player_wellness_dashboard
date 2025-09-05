@@ -4,12 +4,16 @@ import plotly.express as px
 import pandas as pd
 from utils.ui_utils import get_table_height
 from db.mongo_wrapper import DatabaseError
+from utils.team_selector import team_selector
+from utils.constants import TEAMS
 
 def render(mongo, user):
     st.title(":material/bar_chart: RPE Dashboard")
 
-    team_filter = st.selectbox("Filter by Team", ["All", "U18", "U21"])
-    team = None if team_filter == "All" else team_filter
+    team = team_selector(TEAMS)
+    if not team:
+        st.info("Select a team to continue.", icon=":material/info:")
+        return
 
     tab1, tab2, tab3 = st.tabs([":material/table_chart: Weekly Load Table", ":material/warning: AC ratio table", ":material/all_inclusive: All Entries"])
 
@@ -25,7 +29,7 @@ def render(mongo, user):
 
     # --- Tab 1: Weekly Table ---
     with tab1:
-        st.subheader("Total weekly load")
+        st.subheader(":material/table_chart: Weekly RPE Load Table")
         try:
             df = mongo.get_rpe_loads(team=team)
             if df.empty:
@@ -40,7 +44,7 @@ def render(mongo, user):
 
     # --- Tab2: AC ratio table ---
     with tab2:  # or tabs[n] depending on your setup
-        st.subheader("Acute/Chronic ratios")
+        st.subheader(":material/warning: Acute/Chronic RPE ratio table")
         try:
             acr_df = mongo.get_rpe_loads(team=team)
 
@@ -57,7 +61,7 @@ def render(mongo, user):
 
     # --- Tab 3: Player Comparison ---
     with tab3:
-        st.subheader("Daily RPE Entry Overview")
+        st.subheader(":material/all_inclusive: All RPE Entries")
         try:
             rpe_pivot = mongo.get_daily_rpe_overview(team=team)
             if rpe_pivot.empty:
