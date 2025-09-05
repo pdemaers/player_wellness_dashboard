@@ -15,7 +15,7 @@ from views import (
     rpe_data_quality
 )
 
-from utils.constants import TEAMS
+from utils.constants import PAGES, ROLE_ALLOWED_PAGES, Role
 
 # --- ROLE CONFIG --------------------------------------------------------------
 PAGES = {
@@ -115,12 +115,19 @@ def main():
         role = get_user_role(username or "")
         st.session_state["role"] = role  # handy elsewhere
 
+        # --- INIT SERVICES ---
+        @st.cache_resource
+        def get_mongo():
+            return MongoWrapper(st.secrets["MongoDB"])
+
+        mongo = get_mongo()
+
         with st.sidebar:
             st.write(f':material/waving_hand: Welcome *{st.session_state.get("name")}*')
             st.caption(f"Role: `{role}`")
 
             # Init Mongo wrapper
-            mongo = MongoWrapper(st.secrets["MongoDB"])
+            # mongo = MongoWrapper(st.secrets["MongoDB"])
 
             # --- SIDEBAR MENU (role-aware) ---
             role_options = allowed_pages_for(role)
