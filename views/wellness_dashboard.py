@@ -2,6 +2,7 @@ import streamlit as st
 import plotly.express as px
 from utils.ui_utils import get_table_height
 from utils.team_selector import team_selector
+from utils.constants import TEAMS
 from datetime import datetime, date
 import pandas as pd
 
