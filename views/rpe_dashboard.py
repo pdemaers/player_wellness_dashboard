@@ -27,7 +27,7 @@ def render(mongo, user):
         else:
             return f"🟢 {acr:.2f}"
 
-    # --- Tab 1: Weekly Table ---
+    # --- Tab 1: Weekly Load Table ---
     with tab1:
         st.subheader(":material/table_chart: Weekly RPE Load Table")
         try:
@@ -59,7 +59,7 @@ def render(mongo, user):
         except Exception as e:
             st.error(f"Error loading AC ratios: {e}")
 
-    # --- Tab 3: Player Comparison ---
+    # --- Tab 3: All RPE entries with multiselect for weeks ---
     with tab3:
         st.subheader(":material/all_inclusive: All RPE Entries")
         try:
