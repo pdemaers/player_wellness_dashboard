@@ -9,7 +9,7 @@ def render(mongo, user):
     st.title(":material/portrait: Create New Player PDP")
 
     # --- Load roster ---
-    roster = mongo.get_roster_players()
+    roster = mongo.get_roster_players("U18")
     if not roster:
         st.warning("No players found in roster.")
         return
@@ -128,7 +128,7 @@ def render(mongo, user):
                         }
 
         # --- Save PDP ---
-        submitted = st.form_submit_button(" Save PDP")
+        submitted = st.form_submit_button("Save PDP")
         if submitted:
             now = datetime.now().isoformat()
             new_pdp = {
