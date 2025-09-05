@@ -96,9 +96,9 @@ def render(mongo, user):
 
             structure[selected_category][selected_subcategory] = updated_topics
 
-    st.markdown("---")
+    #st.markdown("---")
 
-    if st.button("Save PDP Structure", icon=":material/save:"):
+    if st.button("Save PDP Structure", type="primary", icon=":material/save:"):
         updated_doc = {
             **structure_doc,
             "structure": structure,
