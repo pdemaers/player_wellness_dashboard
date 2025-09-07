@@ -13,7 +13,7 @@ Notes:
 from pymongo import MongoClient
 import pandas as pd
 from datetime import datetime, date, time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set
 #from pymongo.collection import Collection
 #from pymongo import ASCENDING, DESCENDING
 
@@ -695,55 +695,87 @@ class MongoWrapper:
         except Exception as e:
             raise DatabaseError(f"Failed to fetch roster: {e}") from e
 
-    def upsert_attendance_full(
-        self,
-        session_id: str,
-        team: str,
-        present_ids: List[int],
-        absent_items: List[Dict[str, Any]],
-        user: str,
-    ) -> None:
-        """Insert or update full attendance (present + absent) for a session.
+def upsert_attendance_full(
+    self,
+    session_id: str,
+    team: str,
+    present_ids: List[int],
+    absent_items: List[Dict[str, Any]],
+    user: str,
+) -> None:
+    """Insert or update full attendance (present + absent) for a session.
 
-        Args:
-            session_id: Session identifier (e.g., "20250901U21").
-            team: "U18" | "U21".
-            present_ids: Player IDs marked present (deduped + sorted in this method).
-            absent_items: List of {"player_id": int, "reason": str}.
-            user: Display name or identifier of the editor.
+    Args:
+        session_id: Session identifier (e.g., "20250901U21").
+        team: "U18" | "U21".
+        present_ids: Player IDs marked present (deduped + sorted in this method).
+        absent_items: List of {"player_id": int, "reason": str} where `reason` is an ID
+            from the canonical set (e.g., "injury", "individual", "physio_internal",
+            "physio_external", "school", "holiday", "illness", "awol", "other_team").
+        user: Display name or identifier of the editor.
 
-        Notes:
-            - Overwrites both `present` and `absent` arrays atomically.
-            - Validates absence reasons against the canonical set.
-        """
-        VALID = {"injury", "illness", "excused", "other team", "AWOL"}
-        try:
-            present_clean = sorted(set(int(pid) for pid in present_ids))
-            absent_clean = []
-            for item in absent_items:
-                pid = int(item["player_id"])
-                reason = str(item["reason"])
-                if reason not in VALID:
-                    raise ValueError(f"Invalid absence reason '{reason}' for player_id {pid}")
-                absent_clean.append({"player_id": pid, "reason": reason})
+    Notes:
+        - Overwrites both `present` and `absent` arrays atomically.
+        - Validates/normalizes absence reasons against the canonical set.
+          (Spaces → underscores, case-insensitive; e.g., "Other team" -> "other_team")
+        - Temporarily allows deprecated legacy ID "excused" for backward compatibility.
+    """
+    # Prefer to derive valid IDs from the single source of truth in `constants`.
+    try:
+        from constants import ABSENCE_REASONS as ABSENCE_META  # [{"id","label","icon"}, ...]
+        VALID_IDS: Set[str] = {r["id"] for r in ABSENCE_META}
+    except Exception:
+        # Fallback if constants cannot be imported (tests, tooling, etc.)
+        VALID_IDS = {
+            "injury",
+            "individual",
+            "physio_internal",
+            "physio_external",
+            "school",
+            "holiday",
+            "illness",
+            "awol",
+            "other_team",
+        }
 
-            now = datetime.utcnow()
-            self.db["attendance"].update_one(
-                {"session_id": session_id},
-                {
-                    "$setOnInsert": {
-                        "session_id": session_id,
-                        "team": team,
-                        "created": now,
-                    },
-                    "$set": {
-                        "present": present_clean,
-                        "absent": absent_clean,
-                        "last_updated": now,
-                        "user": user,
-                    },
+    # Optional: keep legacy IDs allowed for now to avoid breaking old callers.
+    DEPRECATED_IDS: Set[str] = {"excused"}  # consider migrating or removing later
+
+    def _norm_reason(reason: str) -> str:
+        """Normalize a human-entered/old value to an ID-like form."""
+        r = str(reason).strip().lower().replace(" ", "_")
+        return r
+
+    try:
+        # Clean & dedupe present IDs
+        present_clean = sorted(set(int(pid) for pid in present_ids))
+
+        # Validate/normalize absentees
+        absent_clean = []
+        for item in absent_items:
+            pid = int(item["player_id"])
+            norm = _norm_reason(item["reason"])
+            if norm not in VALID_IDS and norm not in DEPRECATED_IDS:
+                raise ValueError(f"Invalid absence reason '{item['reason']}' (normalized '{norm}') for player_id {pid}")
+            absent_clean.append({"player_id": pid, "reason": norm})
+
+        now = datetime.utcnow()
+        self.db["attendance"].update_one(
+            {"session_id": session_id},
+            {
+                "$setOnInsert": {
+                    "session_id": session_id,
+                    "team": team,
+                    "created": now,
                 },
-                upsert=True,
-            )
-        except Exception as e:
-            raise DatabaseError(f"Failed to upsert attendance: {e}") from e
+                "$set": {
+                    "present": present_clean,
+                    "absent": absent_clean,
+                    "last_updated": now,
+                    "user": user,
+                },
+            },
+            upsert=True,
+        )
+    except Exception as e:
+        raise DatabaseError(f"Failed to upsert attendance: {e}") from e

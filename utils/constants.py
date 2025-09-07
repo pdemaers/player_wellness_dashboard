@@ -6,12 +6,21 @@ Keep this module dependency-free to avoid circular imports.
 from enum import Enum
 from typing import Dict, List, Mapping, Sequence
 
-# --- Teams and attendance reasons -------------------------------------------
+# --- Teams and absence reasons -------------------------------------------
 
 TEAMS: List[str] = ["U18", "U21"]
 
-ABSENCE_REASONS: List[str] = [
-    "injury", "illness", "excused", "school", "other team", "AWOL"
+# Absence reasons with labels and Material icons
+ABSENCE_REASONS: List[Dict[str, str]] = [
+    {"id": "physio_internal", "label": "Physio Internal", "icon": "medical_services"},
+    {"id": "injury", "label": "Injury", "icon": "personal_injury"},
+    {"id": "individual", "label": "Individual", "icon": "directions_run"},
+    {"id": "other_team", "label": "Other team", "icon": "reduce_capacity"},
+    {"id": "holiday", "label": "Holiday", "icon": "flight_takeoff"},
+    {"id": "physio_external", "label": "Physio External", "icon": "medical_services"},
+    {"id": "school", "label": "School", "icon": "school"},
+    {"id": "illness", "label": "Illness", "icon": "sick"},
+    {"id": "awol", "label": "AWOL", "icon": "warning"},
 ]
 
 # Players to exempt from specific calculations (hard-coded ids)

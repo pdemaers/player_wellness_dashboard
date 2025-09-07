@@ -145,6 +145,8 @@ def render(mongo, user):
     st.caption("Pick a reason for each player not selected as present.")
 
     absentee_reasons: Dict[int, str] = {}
+    reason_labels = [r["label"] for r in ABSENCE_REASONS]
+    by_label = {r["label"]: r for r in ABSENCE_REASONS}
 
     if absentees:
         for p in absentees:
@@ -152,7 +154,7 @@ def render(mongo, user):
             # Use the player's name as the label for a compact UI
             absentee_reasons[pid] = st.selectbox(
                 label=p["name"],
-                options=ABSENCE_REASONS,
+                options=reason_labels,
                 index=0,
                 key=f"abs_{session_id}_{pid}",
                 width=200
@@ -168,7 +170,10 @@ def render(mongo, user):
                 session_id=session_id,
                 team=team,
                 present_ids=[int(x) for x in present_ids],
-                absent_items=absent_items,
+                absent_items = [
+                    {"player_id": int(pid), "reason": by_label[label]["id"]}
+                    for pid, label in absentee_reasons.items()
+                ],
                 user=user if isinstance(user, str) else getattr(user, "name", str(user))
             )
             # selected_label is the dd/mm/yyyy string from the session date dropdown
