@@ -8,6 +8,7 @@ Start here:
 - [RPE Dashboard](dashboards/rpe_dashboard.md)
 - [Session Management](admin/session_management.md)
 - [Roster Management](admin/roster_management.md)
+- [Attendance Management](admin/attendance_management.md)
 
 ## About
 - Built with **Streamlit** and **MongoDB** for U18/U21 workflows (wellness, RPE, sessions, PDP).

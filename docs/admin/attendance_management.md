@@ -1,55 +1,64 @@
 # Attendance Management
 
-The **Attendance Management** page allows coaches to register player presence and absence for each training session or match in one simple workflow.
+The **Attendance Management** page allows coaches to both register attendance for each session and review a season-long attendance overview.
 
 ---
 
 ## Features
 
-- **Team selection**  
-  Choose between `U18` and `U21` via a segmented control.
+### Team Selection
+- Coaches choose between `U18` and `U21` via a segmented control.
+- The team selector is displayed **outside the tabs**, so it applies to both registration and overview.
 
-- **Session selection**  
+### Tabs
+The page is divided into two tabs:
 
-  - Sessions are shown by date only (`dd/mm/yyyy` format).  
-  - Defaults to today’s session if available, otherwise the most recent.  
-  - Shows today plus the last 5 sessions.
+1. **Register Attendance**
+   - Select session by date (shown in `dd/mm/yyyy`, defaults to today).
+   - All players of the team are shown as **pills**.  
+     Coaches select the players who were present.
+   - Players not selected are automatically listed as **absentees**.
+   - For each absentee, a dropdown allows assigning a reason:
+     - 🩼 Injury  
+     - 🏃 Individual  
+     - 🏥 Physio Internal  
+     - 🚑 Physio External  
+     - 🎓 School  
+     - ✈️ Holiday  
+     - 🤒 Illness  
+     - ⚠️ AWOL  
+     - 🥇 Other team
+   - Attendance is saved in one step. Both presence and absence are written to the database.
 
-- **Presence registration**  
-
-  - All players of the selected team are displayed as pills.  
-  - Coaches select the players who were present.  
-  - Player IDs are hidden; only names are shown.
-
-- **Absence registration**  
-
-  - Players not marked as present are automatically listed as absentees.  
-  - Each absentee has a dropdown to assign a reason:  
-  
-    - `injury`  
-    - `illness`  
-    - `excused`  
-    - `other team`  
-    - `AWOL`
-
-- **Save attendance**  
-  - Presences and absentees are saved together in one step.  
-  - Confirmation message shows the selected session date and team, e.g.:  
-    > *Attendance saved for 01/09/2025 — U21.*
+2. **Overview**
+   - Displays a **player × session date matrix** with compact emojis.
+   - **Rows** = players, **Columns** = session dates (shown as `dd/mm` with the full date available in a tooltip).
+   - **Cells** = emoji for attendance status:
+     - ✅ Present  
+     - 🩼, 🏃, 🏥, 🎓, ✈️, 🤒, ⚠️, 🥇 (absence reasons as above)  
+     - ❔ No entry
+   - Table options:
+     - Interactive mode (`st.data_editor`): scrollable/sortable, with approximate centering.
+     - Static mode (`pd.Styler`): perfectly centered icons, non-interactive.
+   - A legend is displayed below the table.
 
 ---
 
 ## Data Flow
 
-- **Sessions** are retrieved from `MongoWrapper.get_recent_sessions(team=...)`.  
-- **Rosters** are retrieved from `MongoWrapper.get_roster_players(team=...)`.  
-- **Attendance** is written in one go via `MongoWrapper.upsert_attendance_full(...)`.
+- **Sessions** are loaded via `MongoWrapper.get_recent_sessions(team=...)`.  
+- **Rosters** are loaded via `MongoWrapper.get_roster_players(team=...)`.  
+- **Attendance** is written and updated via `MongoWrapper.upsert_attendance_full(...)`.  
+- **Overview matrix** is generated with a helper that:
+  - Fetches all sessions (deduplicated by date).
+  - Builds a DataFrame with one row per player, one column per session date.
+  - Fills cells with emojis depending on attendance status.
 
 ---
 
 ## Database Schema
 
-Attendance data is stored in the `attendance` collection, one document per session:
+Attendance is stored in the `attendance` collection, one document per session:
 
 ```json
 {
@@ -58,7 +67,7 @@ Attendance data is stored in the `attendance` collection, one document per sessi
   "present": [21234, 21301, 21315],
   "absent": [
     {"player_id": 21285, "reason": "injury"},
-    {"player_id": 21299, "reason": "excused"}
+    {"player_id": 21299, "reason": "school"}
   ],
   "created": "2025-09-01T08:30:00Z",
   "last_updated": "2025-09-01T08:35:00Z",
