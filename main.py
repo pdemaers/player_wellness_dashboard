@@ -15,7 +15,7 @@ from views import (
     rpe_data_quality
 )
 
-from utils.constants import PAGES, ROLE_ALLOWED_PAGES, Role
+#from utils.constants import PAGES, ROLE_ALLOWED_PAGES, Role
 
 # --- ROLE CONFIG --------------------------------------------------------------
 PAGES = {
@@ -48,7 +48,7 @@ ROLE_ALLOWED_PAGES = {
     "admin": list(PAGES.keys()),
     "coach": [
         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
-        "Create PDP", "PDP Library"
+        "Create PDP", "PDP Library", "Attendance"
     ],
     "physio": [
         "Wellness Dashboard", "RPE Dashboard"
