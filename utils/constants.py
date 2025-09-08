@@ -66,7 +66,7 @@ ROLE_ALLOWED_PAGES: Mapping[Role, Sequence[str]] = {
     Role.ADMIN: list(PAGES.keys()),
     Role.COACH: [
         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
-        "Create PDP", "PDP Library"
+        "Create PDP", "PDP Library",  "Attendance Management"
     ],
     Role.PHYSIO: [
         "Wellness Dashboard", "RPE Dashboard"
