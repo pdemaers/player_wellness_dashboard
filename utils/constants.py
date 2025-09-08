@@ -12,16 +12,19 @@ TEAMS: List[str] = ["U18", "U21"]
 
 # Absence reasons with labels and Material icons
 ABSENCE_REASONS: List[Dict[str, str]] = [
-    {"id": "physio_internal", "label": "Physio Internal", "icon": "medical_services"},
-    {"id": "injury", "label": "Injury", "icon": "personal_injury"},
-    {"id": "individual", "label": "Individual", "icon": "directions_run"},
-    {"id": "other_team", "label": "Other team", "icon": "reduce_capacity"},
-    {"id": "holiday", "label": "Holiday", "icon": "flight_takeoff"},
-    {"id": "physio_external", "label": "Physio External", "icon": "medical_services"},
-    {"id": "school", "label": "School", "icon": "school"},
-    {"id": "illness", "label": "Illness", "icon": "sick"},
-    {"id": "awol", "label": "AWOL", "icon": "warning"},
+    {"id": "physio_internal", "label": "Physio Internal", "emoji": "🏥"},
+    {"id": "injury", "label": "Injury", "emoji": "🩼"},
+    {"id": "individual", "label": "Individual", "emoji": "🏃"},
+    {"id": "other_team", "label": "Other team", "emoji": "🥇"},
+    {"id": "holiday", "label": "Holiday", "emoji": "✈️"},
+    {"id": "physio_external", "label": "Physio External", "emoji": "🚑"},
+    {"id": "school", "label": "School", "emoji": "🎓"},
+    {"id": "illness", "label": "Illness", "emoji": "🤒"},
+    {"id": "awol", "label": "AWOL", "emoji": "⚠️"},
 ]
+
+PRESENT_EMOJI = "✅"
+UNKNOWN_EMOJI = "❔"
 
 # Players to exempt from specific calculations (hard-coded ids)
 EXEMPT: List[int] = [21511, 21772, 21007, 21984]

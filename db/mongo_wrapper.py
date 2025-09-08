@@ -653,26 +653,43 @@ class MongoWrapper:
     # Session attendance functions
     # -----------------------------
 
-    def get_recent_sessions(self, team: str, limit: int = 6, up_to_date: Optional[date] = None) -> List[Dict[str, Any]]:
-        """Return up to `limit` most recent sessions for a team (date DESC).
+    def get_recent_sessions(
+        self,
+        team: str,
+        limit: Optional[int] = 6,
+        up_to_date: Optional[date] = None
+    ) -> List[Dict[str, Any]]:
+        """Return recent sessions for a team (date DESC).
+
+        Args:
+            team: "U18" | "U21".
+            limit: Max number of sessions to fetch; if None or <=0, no limit is applied.
+            up_to_date: Optional cutoff date (include sessions on or before this date).
 
         Notes:
             - When `up_to_date` is provided, results are restricted to that day or earlier.
-            - Useful for building a date-only dropdown (dedup by date in caller).
+            - Callers can deduplicate by date after retrieval (e.g., keep latest per day).
+            - When `limit` is provided, we fetch a bit extra (×2) to allow for date-dedup.
         """
         try:
             q: Dict[str, Any] = {"team": team}
             if up_to_date:
                 end = datetime.combine(up_to_date, time.max)
                 q["date"] = {"$lte": end}
+
             cur = (
                 self.db["sessions"]
                 .find(q, {"_id": 0})
                 .sort([("date", -1)])  # DESC
-                .limit(limit * 2)       # fetch extra to allow date-dedup client-side
             )
+
+            # Apply limit only when requested
+            if isinstance(limit, int) and limit > 0:
+                cur = cur.limit(limit * 2)  # fetch extra for date-dedup
+
             records = list(cur)
-            # Stable sort (some docs may have string dates)
+
+            # Stable sort (handles string/iso dates as well)
             def _key(s):
                 d = s.get("date")
                 if isinstance(d, datetime):
@@ -683,8 +700,14 @@ class MongoWrapper:
                     return datetime.fromisoformat(str(d))
                 except Exception:
                     return datetime.min
+
             records.sort(key=_key, reverse=True)
-            return records[: (limit * 2)]
+
+            if isinstance(limit, int) and limit > 0:
+                return records[: (limit * 2)]
+            # No limit requested → return all
+            return records
+
         except Exception as e:
             raise DatabaseError(f"Failed to fetch recent sessions: {e}") from e
 
@@ -695,87 +718,87 @@ class MongoWrapper:
         except Exception as e:
             raise DatabaseError(f"Failed to fetch roster: {e}") from e
 
-def upsert_attendance_full(
-    self,
-    session_id: str,
-    team: str,
-    present_ids: List[int],
-    absent_items: List[Dict[str, Any]],
-    user: str,
-) -> None:
-    """Insert or update full attendance (present + absent) for a session.
+    def upsert_attendance_full(
+        self,
+        session_id: str,
+        team: str,
+        present_ids: List[int],
+        absent_items: List[Dict[str, Any]],
+        user: str,
+    ) -> None:
+        """Insert or update full attendance (present + absent) for a session.
 
-    Args:
-        session_id: Session identifier (e.g., "20250901U21").
-        team: "U18" | "U21".
-        present_ids: Player IDs marked present (deduped + sorted in this method).
-        absent_items: List of {"player_id": int, "reason": str} where `reason` is an ID
-            from the canonical set (e.g., "injury", "individual", "physio_internal",
-            "physio_external", "school", "holiday", "illness", "awol", "other_team").
-        user: Display name or identifier of the editor.
+        Args:
+            session_id: Session identifier (e.g., "20250901U21").
+            team: "U18" | "U21".
+            present_ids: Player IDs marked present (deduped + sorted in this method).
+            absent_items: List of {"player_id": int, "reason": str} where `reason` is an ID
+                from the canonical set (e.g., "injury", "individual", "physio_internal",
+                "physio_external", "school", "holiday", "illness", "awol", "other_team").
+            user: Display name or identifier of the editor.
 
-    Notes:
-        - Overwrites both `present` and `absent` arrays atomically.
-        - Validates/normalizes absence reasons against the canonical set.
-          (Spaces → underscores, case-insensitive; e.g., "Other team" -> "other_team")
-        - Temporarily allows deprecated legacy ID "excused" for backward compatibility.
-    """
-    # Prefer to derive valid IDs from the single source of truth in `constants`.
-    try:
-        from constants import ABSENCE_REASONS as ABSENCE_META  # [{"id","label","icon"}, ...]
-        VALID_IDS: Set[str] = {r["id"] for r in ABSENCE_META}
-    except Exception:
-        # Fallback if constants cannot be imported (tests, tooling, etc.)
-        VALID_IDS = {
-            "injury",
-            "individual",
-            "physio_internal",
-            "physio_external",
-            "school",
-            "holiday",
-            "illness",
-            "awol",
-            "other_team",
-        }
+        Notes:
+            - Overwrites both `present` and `absent` arrays atomically.
+            - Validates/normalizes absence reasons against the canonical set.
+            (Spaces → underscores, case-insensitive; e.g., "Other team" -> "other_team")
+            - Temporarily allows deprecated legacy ID "excused" for backward compatibility.
+        """
+        # Prefer to derive valid IDs from the single source of truth in `constants`.
+        try:
+            from constants import ABSENCE_REASONS as ABSENCE_META  # [{"id","label","icon"}, ...]
+            VALID_IDS: Set[str] = {r["id"] for r in ABSENCE_META}
+        except Exception:
+            # Fallback if constants cannot be imported (tests, tooling, etc.)
+            VALID_IDS = {
+                "injury",
+                "individual",
+                "physio_internal",
+                "physio_external",
+                "school",
+                "holiday",
+                "illness",
+                "awol",
+                "other_team",
+            }
 
-    # Optional: keep legacy IDs allowed for now to avoid breaking old callers.
-    DEPRECATED_IDS: Set[str] = {"excused"}  # consider migrating or removing later
+        # Optional: keep legacy IDs allowed for now to avoid breaking old callers.
+        DEPRECATED_IDS: Set[str] = {"excused"}  # consider migrating or removing later
 
-    def _norm_reason(reason: str) -> str:
-        """Normalize a human-entered/old value to an ID-like form."""
-        r = str(reason).strip().lower().replace(" ", "_")
-        return r
+        def _norm_reason(reason: str) -> str:
+            """Normalize a human-entered/old value to an ID-like form."""
+            r = str(reason).strip().lower().replace(" ", "_")
+            return r
 
-    try:
-        # Clean & dedupe present IDs
-        present_clean = sorted(set(int(pid) for pid in present_ids))
+        try:
+            # Clean & dedupe present IDs
+            present_clean = sorted(set(int(pid) for pid in present_ids))
 
-        # Validate/normalize absentees
-        absent_clean = []
-        for item in absent_items:
-            pid = int(item["player_id"])
-            norm = _norm_reason(item["reason"])
-            if norm not in VALID_IDS and norm not in DEPRECATED_IDS:
-                raise ValueError(f"Invalid absence reason '{item['reason']}' (normalized '{norm}') for player_id {pid}")
-            absent_clean.append({"player_id": pid, "reason": norm})
+            # Validate/normalize absentees
+            absent_clean = []
+            for item in absent_items:
+                pid = int(item["player_id"])
+                norm = _norm_reason(item["reason"])
+                if norm not in VALID_IDS and norm not in DEPRECATED_IDS:
+                    raise ValueError(f"Invalid absence reason '{item['reason']}' (normalized '{norm}') for player_id {pid}")
+                absent_clean.append({"player_id": pid, "reason": norm})
 
-        now = datetime.utcnow()
-        self.db["attendance"].update_one(
-            {"session_id": session_id},
-            {
-                "$setOnInsert": {
-                    "session_id": session_id,
-                    "team": team,
-                    "created": now,
+            now = datetime.utcnow()
+            self.db["attendance"].update_one(
+                {"session_id": session_id},
+                {
+                    "$setOnInsert": {
+                        "session_id": session_id,
+                        "team": team,
+                        "created": now,
+                    },
+                    "$set": {
+                        "present": present_clean,
+                        "absent": absent_clean,
+                        "last_updated": now,
+                        "user": user,
+                    },
                 },
-                "$set": {
-                    "present": present_clean,
-                    "absent": absent_clean,
-                    "last_updated": now,
-                    "user": user,
-                },
-            },
-            upsert=True,
-        )
-    except Exception as e:
-        raise DatabaseError(f"Failed to upsert attendance: {e}") from e
+                upsert=True,
+            )
+        except Exception as e:
+            raise DatabaseError(f"Failed to upsert attendance: {e}") from e
