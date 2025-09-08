@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Optional, List, Dict, Any
 import pandas as pd
 
+from utils.constants import REGISTRATION_START_DATE
+
 def _get_exempt_ids(override: Optional[List[str]] = None) -> List[str]:
     if override is not None:
         return [str(x) for x in override]
@@ -28,12 +30,28 @@ def season_rpe_quality(
     """
     exempt = set(_get_exempt_ids(exempt_player_ids))
 
-    # --- Load base tables
+    # --- Load + constrain sessions to the registrable window ---
     sessions = mongo.get_sessions_df(team=team).copy()
     if not sessions.empty:
+        # Parse datetimes
         sessions["date"] = pd.to_datetime(sessions["date"], errors="coerce")
+
+        # Derive ISO week if missing
         if "weeknumber" not in sessions.columns or sessions["weeknumber"].isna().any():
             sessions["weeknumber"] = sessions["date"].dt.isocalendar().week.astype(int)
+
+        # Window: from REGISTRATION_START_DATE .. yesterday (Europe/Brussels)
+        start_date = pd.to_datetime(REGISTRATION_START_DATE, errors="coerce").date()
+
+        yesterday_date = (pd.Timestamp.now(tz="Europe/Brussels") - pd.Timedelta(days=1)).date()
+
+        # Compare on calendar dates to avoid tz gotchas
+        sessions["date_only"] = sessions["date"].dt.date
+        sessions = sessions[(sessions["date_only"] >= start_date) & (sessions["date_only"] <= yesterday_date)]
+
+        # (optional) drop helper column if you want to keep df tidy
+        sessions = sessions.drop(columns=["date_only"])
+
     n_sessions = 0 if sessions.empty else len(sessions)
 
     roster = mongo.get_roster_df()

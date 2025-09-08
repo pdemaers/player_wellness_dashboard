@@ -39,6 +39,10 @@ SESSION_TYPE_STYLES: Dict[str, Dict[str, str]] = {
     "M":  {"color": "#7c3aed", "label": "Match"},                # purple
 }
 
+# --- Registration start date to optimize data quality calculation -----------
+
+REGISTRATION_START_DATE = "2025-08-04"
+
 # --- Roles ------------------------------------------------------------------
 
 class Role(str, Enum):
