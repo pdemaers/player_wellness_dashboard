@@ -15,7 +15,7 @@ from views import (
     rpe_data_quality
 )
 
-#from utils.constants import PAGES, ROLE_ALLOWED_PAGES, Role
+from utils.constants import PAGE_ICONS, ROLE_ALLOWED_PAGES, Role
 
 # --- ROLE CONFIG --------------------------------------------------------------
 PAGES = {
@@ -31,29 +31,29 @@ PAGES = {
     "RPE data quality":  lambda mongo, user: rpe_data_quality.render(mongo, user=user),
 }
 
-PAGE_ICONS = {
-    "Roster Management": "people-fill",
-    "Session Management": "calendar2-event-fill",
-    "PDP Structure": "file-earmark-text",
-    "Wellness Dashboard": "heart-pulse",
-    "RPE Dashboard": "bar-chart-line",
-    "Session Dashboard": "clipboard-data",
-    "Create PDP": "file-earmark-plus",
-    "PDP Library": "archive",
-    "Attendance": "person-check",
-    "RPE data quality": "database-fill-exclamation"
-}
+# PAGE_ICONS = {
+#     "Roster Management": "people-fill",
+#     "Session Management": "calendar2-event-fill",
+#     "PDP Structure": "file-earmark-text",
+#     "Wellness Dashboard": "heart-pulse",
+#     "RPE Dashboard": "bar-chart-line",
+#     "Session Dashboard": "clipboard-data",
+#     "Create PDP": "file-earmark-plus",
+#     "PDP Library": "archive",
+#     "Attendance": "person-check",
+#     "RPE data quality": "database-fill-exclamation"
+# }
 
-ROLE_ALLOWED_PAGES = {
-    "admin": list(PAGES.keys()),
-    "coach": [
-        "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
-        "Create PDP", "PDP Library", "Attendance"
-    ],
-    "physio": [
-        "Wellness Dashboard", "RPE Dashboard"
-    ],
-}
+# ROLE_ALLOWED_PAGES = {
+#     "admin": list(PAGES.keys()),
+#     "coach": [
+#         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
+#         "Create PDP", "PDP Library", "Attendance"
+#     ],
+#     "physio": [
+#         "Wellness Dashboard", "RPE Dashboard"
+#     ],
+# }
 
 def get_user_role(username: str) -> str:
     """
@@ -142,30 +142,10 @@ def main():
         guard_access(role, selected)
         PAGES[selected](mongo, user=username)
 
-
-
-        # --- ROUTING ---
-        # if selected == "Roster Management":
-        #     roster_management.render(mongo, user=st.session_state["username"])  # Modular function
-        # elif selected == "Session Management":
-        #     session_management.render(mongo, user=st.session_state["username"])
-        # elif selected == "PDP Structure":
-        #     pdp_structure_management.render(mongo, user=st.session_state["username"])
-        # elif selected == "Wellness Dashboard":
-        #     wellness_dashboard.render(mongo, user=st.session_state["username"])
-        # elif selected == "RPE Dashboard":
-        #     rpe_dashboard.render(mongo, user=st.session_state["username"])
-        # elif selected == "Session Dashboard":
-        #     session_dashboard.render(mongo, user=st.session_state["username"])
-        # elif selected == "Create PDP":
-        #     player_pdp.render(mongo, user=st.session_state["username"])
-        # elif selected == "PDP Library":
-        #     pdp_library.render(mongo, user=st.session_state["username"])
-
     elif auth_status is False:
-        st.error(":material/error: Username or password is incorrect")
+        st.error("Username or password is incorrect", icon=":material/error:")
     else:
-        st.warning("Please enter your username and password")
+        st.warning("Please enter your username and password", icon=":material/warning:")
 
 # Run app
 if __name__ == "__main__":

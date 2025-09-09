@@ -54,28 +54,30 @@ class Role(str, Enum):
 # --- Pages ------------------------------------------------------------------
 
 # Mapping: page name -> icon
-PAGES: Dict[str, str] = {
-    "Wellness Dashboard": ":material/monitor_heart:",
-    "RPE Dashboard": ":material/stacked_line_chart:",
-    "Session Dashboard": ":material/calendar_month:",
-    "Create PDP": ":material/add_circle:",
-    "PDP Library": ":material/library_books:",
-    "Roster Management": ":material/badge:",
-    "Attendance Management": ":material/groups:",
-    "Injury Management": ":material/medical_information:",
-    "Settings": ":material/settings:",
+PAGE_ICONS = {
+    "Roster Management": "people-fill",
+    "Session Management": "calendar2-event-fill",
+    "PDP Structure": "file-earmark-text",
+    "Wellness Dashboard": "heart-pulse",
+    "RPE Dashboard": "bar-chart-line",
+    "Session Dashboard": "clipboard-data",
+    "Create PDP": "file-earmark-plus",
+    "PDP Library": "archive",
+    "Attendance": "person-check",
+    "RPE data quality": "database-fill-exclamation"
 }
 
-ROLE_ALLOWED_PAGES: Mapping[Role, Sequence[str]] = {
-    Role.ADMIN: list(PAGES.keys()),
-    Role.COACH: [
+ROLE_ALLOWED_PAGES = {
+    "admin": [
+        "Roster Management", "Session Management", "PDP Structure",
         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
-        "Create PDP", "PDP Library",  "Attendance Management"
+        "Create PDP", "PDP Library", "Attendance", "RPE data quality"
     ],
-    Role.PHYSIO: [
+    "coach": [
+        "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
+        "Create PDP", "PDP Library", "Attendance"
+    ],
+    "physio": [
         "Wellness Dashboard", "RPE Dashboard"
-    ],
-    Role.TEAM_MANAGER: [
-        # define later when role becomes active
     ],
 }
