@@ -60,7 +60,7 @@ PAGE_ICONS = {
     "PDP Structure": "file-earmark-text",
     "Wellness Dashboard": "heart-pulse",
     "RPE Dashboard": "bar-chart-line",
-    "Session Dashboard": "clipboard-data",
+    "Session Dashboard": "stopwatch",
     "Create PDP": "file-earmark-plus",
     "PDP Library": "archive",
     "Attendance": "person-check",
