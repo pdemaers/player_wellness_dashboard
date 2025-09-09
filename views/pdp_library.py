@@ -1,12 +1,20 @@
 import streamlit as st
 from datetime import datetime
 from utils.pdf_utils import generate_pdp_pdf
+from utils.team_selector import team_selector
+from utils.constants import TEAMS
+from db.mongo_wrapper import DatabaseError
 
 def render(mongo, user):
     st.title(":material/folder: PDP Archive")
 
+    team = team_selector(TEAMS)
+    if not team:
+        st.info("Select a team to continue.", icon=":material/info:")
+        return
+
     # --- Load roster ---
-    roster = mongo.get_roster_players()
+    roster = mongo.get_roster_players(team=team)
     if not roster:
         st.warning("No players found in roster.")
         return
