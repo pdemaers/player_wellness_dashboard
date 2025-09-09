@@ -219,7 +219,8 @@ class MongoWrapper:
             wellness_df["date"] = pd.to_datetime(wellness_df["date"])
 
             # Set custom season start date (first Monday of August)
-            season_start = pd.to_datetime("2025-08-04")  # Adjust if needed
+            from utils.constants import REGISTRATION_START_DATE
+            season_start = pd.to_datetime(REGISTRATION_START_DATE)
 
             # Calculate season week number (0-based)
             wellness_df["season_week"] = ((wellness_df["date"] - season_start).dt.days // 7).astype(int)
@@ -264,19 +265,23 @@ class MongoWrapper:
     
     def get_today_wellness_entries(self, team: str, target_date: date = None):
         """Returns wellness entries for a given day (based on submission timestamp)."""
-        if target_date is None:
-            target_date = date.today()
+        try:
+            if target_date is None:
+                target_date = date.today()
 
-        start_ts = datetime.combine(target_date, time.min)
-        end_ts = datetime.combine(target_date, time.max)
+            start_ts = datetime.combine(target_date, time.min)
+            end_ts = datetime.combine(target_date, time.max)
 
-        roster = self.get_roster_players(team=team)
-        player_ids = [int(p["player_id"]) for p in roster]
+            roster = self.get_roster_players(team=team)
+            player_ids = [int(p["player_id"]) for p in roster]
 
-        return list(self.db["player_wellness"].find({
-            "player_id": {"$in": player_ids},
-            "timestamp": {"$gte": start_ts, "$lte": end_ts}
-        }))
+            return list(self.db["player_wellness"].find({
+                "player_id": {"$in": player_ids},
+                "timestamp": {"$gte": start_ts, "$lte": end_ts}
+            }))
+        
+        except Exception as e:
+            raise DatabaseError(f"Failed to fetch today's wellness entries: {e}")
     
     def get_daily_wellness_overview(self, team=None) -> pd.DataFrame:
         """Return pivot table with one row per player and one column per day showing 'feeling | sleep_hours'."""
@@ -359,11 +364,12 @@ class MongoWrapper:
             - Group by player/week
             - Add rolling acute:chronic ratio
         """
-        pipeline = [
-            # Join with sessions collection
-            {"$lookup": {
-                "from": "sessions",
-                "localField": "session_id",
+        try:
+            pipeline = [
+                # Join with sessions collection
+                {"$lookup": {
+                    "from": "sessions",
+                    "localField": "session_id",
                 "foreignField": "session_id",
                 "as": "session"
             }},
@@ -430,19 +436,22 @@ class MongoWrapper:
             }},
             {"$sort": {"player_name": 1, "week": 1}}
         ]
+            
+            df = pd.DataFrame(list(self.db.player_rpe.aggregate(pipeline)))
 
-        df = pd.DataFrame(list(self.db.player_rpe.aggregate(pipeline)))
+            if df.empty:
+                return df
 
-        if df.empty:
+            # Calculate rolling metrics
+            df = df.sort_values(by=["player_name", "week"])
+            df["acute"] = df.groupby("player_name")["load"].transform(lambda x: x.rolling(1, min_periods=1).mean())
+            df["chronic"] = df.groupby("player_name")["load"].transform(lambda x: x.shift().rolling(4, min_periods=1).mean())
+            df["acr"] = (df["acute"] / df["chronic"]).round(2)
+
             return df
-
-        # Calculate rolling metrics
-        df = df.sort_values(by=["player_name", "week"])
-        df["acute"] = df.groupby("player_name")["load"].transform(lambda x: x.rolling(1, min_periods=1).mean())
-        df["chronic"] = df.groupby("player_name")["load"].transform(lambda x: x.shift().rolling(4, min_periods=1).mean())
-        df["acr"] = (df["acute"] / df["chronic"]).round(2)
-
-        return df
+        
+        except Exception as e:
+            raise DatabaseError(f"Failed to fetch RPE loads: {e}")   
     
     def get_daily_rpe_overview(self, team: str | None = None) -> pd.DataFrame:
         """
@@ -566,11 +575,12 @@ class MongoWrapper:
         Aggregates RPE data for the session dashboard.
         Returns weekly total load, average player load, and per-session-type distributions.
         """
-        pipeline = [
-            {
-                "$lookup": {
-                    "from": "sessions",
-                    "localField": "session_id",
+        try:
+            pipeline = [
+                {
+                    "$lookup": {
+                        "from": "sessions",
+                        "localField": "session_id",
                     "foreignField": "session_id",
                     "as": "session"
                 }
@@ -578,57 +588,60 @@ class MongoWrapper:
             {"$unwind": "$session"},
         ]
 
-        if team:
-            pipeline.append({"$match": {"session.team": team}})
+            if team:
+                pipeline.append({"$match": {"session.team": team}})
 
-        pipeline += [
-            {
-                "$project": {
-                    "load": {
-                        "$multiply": [
-                            "$rpe_score",
-                            {
-                                "$cond": {
-                                    "if": {"$gt": ["$training_minutes", 0]},
-                                    "then": "$training_minutes",
-                                    "else": "$session.duration"
+            pipeline += [
+                {
+                    "$project": {
+                        "load": {
+                            "$multiply": [
+                                "$rpe_score",
+                                {
+                                    "$cond": {
+                                        "if": {"$gt": ["$training_minutes", 0]},
+                                        "then": "$training_minutes",
+                                        "else": "$session.duration"
+                                    }
                                 }
-                            }
-                        ]
-                    },
-                    "weeknumber": "$session.weeknumber",
-                    "session_type": "$session.session_type",
-                    "session_id": "$session.session_id",
-                    "player_id": 1,
-                    "team": "$session.team"
-                }
-            },
-            {
-                "$group": {
-                    "_id": {
-                        "week": "$weeknumber",
-                        "session_type": "$session_type"
-                    },
-                    "total_load": {"$sum": "$load"},
-                    "sessions": {"$addToSet": "$session_id"},
-                    "players": {"$addToSet": "$player_id"}
-                }
-            },
-            {
-                "$project": {
-                    "week": "$_id.week",
-                    "session_type": "$_id.session_type",
-                    "total_load": 1,
-                    "session_count": {"$size": "$sessions"},
-                    "player_count": {"$size": "$players"},
-                    "_id": 0
-                }
-            },
-            {"$sort": {"week": 1, "session_type": 1}}
-        ]
+                            ]
+                        },
+                        "weeknumber": "$session.weeknumber",
+                        "session_type": "$session.session_type",
+                        "session_id": "$session.session_id",
+                        "player_id": 1,
+                        "team": "$session.team"
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "week": "$weeknumber",
+                            "session_type": "$session_type"
+                        },
+                        "total_load": {"$sum": "$load"},
+                        "sessions": {"$addToSet": "$session_id"},
+                        "players": {"$addToSet": "$player_id"}
+                    }
+                },
+                {
+                    "$project": {
+                        "week": "$_id.week",
+                        "session_type": "$_id.session_type",
+                        "total_load": 1,
+                        "session_count": {"$size": "$sessions"},
+                        "player_count": {"$size": "$players"},
+                        "_id": 0
+                    }
+                },
+                {"$sort": {"week": 1, "session_type": 1}}
+            ]
 
-        return list(self.db["player_rpe"].aggregate(pipeline))
-    
+            return list(self.db["player_rpe"].aggregate(pipeline))
+        
+        except Exception as e:
+            raise DatabaseError(f"Failed to fetch session RPE aggregates: {e}")
+            
     # ---------------------
     # Player PDP functions
     # ---------------------
@@ -765,7 +778,7 @@ class MongoWrapper:
         """
         # Prefer to derive valid IDs from the single source of truth in `constants`.
         try:
-            from constants import ABSENCE_REASONS as ABSENCE_META  # [{"id","label","icon"}, ...]
+            from utils.constants import ABSENCE_REASONS as ABSENCE_META  # [{"id","label","icon"}, ...]
             VALID_IDS: Set[str] = {r["id"] for r in ABSENCE_META}
         except Exception:
             # Fallback if constants cannot be imported (tests, tooling, etc.)
