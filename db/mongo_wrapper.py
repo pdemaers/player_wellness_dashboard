@@ -690,18 +690,21 @@ class MongoWrapper:
         self,
         team: str,
         limit: Optional[int] = 6,
-        up_to_date: Optional[date] = None
+        up_to_date: Optional[date] = None,
+        session_type: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """Return recent sessions for a team (date DESC).
+        """Return recent sessions for a team (date DESC), optionally filtered by session_type.
 
         Args:
             team: "U18" | "U21".
             limit: Max number of sessions to fetch; if None or <=0, no limit is applied.
             up_to_date: Optional cutoff date (include sessions on or before this date).
+            session_type: Optional session type filter ("T1", "T2", "T3", "T4", "M").
+                        Can also be a list of types.
 
         Notes:
             - When `up_to_date` is provided, results are restricted to that day or earlier.
-            - Callers can deduplicate by date after retrieval (e.g., keep latest per day).
+            - When `session_type` is provided, only sessions of that type(s) are returned.
             - When `limit` is provided, we fetch a bit extra (×2) to allow for date-dedup.
         """
         try:
@@ -709,6 +712,11 @@ class MongoWrapper:
             if up_to_date:
                 end = datetime.combine(up_to_date, time.max)
                 q["date"] = {"$lte": end}
+            if session_type:
+                if isinstance(session_type, list):
+                    q["session_type"] = {"$in": session_type}
+                else:
+                    q["session_type"] = session_type
 
             cur = (
                 self.db["sessions"]
@@ -716,13 +724,11 @@ class MongoWrapper:
                 .sort([("date", -1)])  # DESC
             )
 
-            # Apply limit only when requested
             if isinstance(limit, int) and limit > 0:
                 cur = cur.limit(limit * 2)  # fetch extra for date-dedup
 
             records = list(cur)
 
-            # Stable sort (handles string/iso dates as well)
             def _key(s):
                 d = s.get("date")
                 if isinstance(d, datetime):
@@ -738,7 +744,6 @@ class MongoWrapper:
 
             if isinstance(limit, int) and limit > 0:
                 return records[: (limit * 2)]
-            # No limit requested → return all
             return records
 
         except Exception as e:

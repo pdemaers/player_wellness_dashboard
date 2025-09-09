@@ -85,7 +85,7 @@ def build_attendance_overview_df(
     up_to = up_to or date.today()
 
     # --- fetch sessions (dedup by date, latest per day) ---
-    sessions = mongo.get_recent_sessions(team=team, limit=None, up_to_date=up_to)
+    sessions = mongo.get_recent_sessions(team=team, limit=None, up_to_date=up_to, session_type=["T1", "T2", "T3", "T4"])
     sessions_sorted = sorted(sessions, key=lambda s: _to_date(s.get("date")), reverse=False)
 
     seen = set()
@@ -164,7 +164,7 @@ def build_attendance_overview_df(
 def render(mongo, user):
     """Render attendance page with one-step present/absent registration."""
     
-    st.title("Attendance")
+    st.title(":material/how_to_reg: Attendance")
 
     # --- TEAM ---------------------------------------------------------------
     team = team_selector(TEAMS)
@@ -172,7 +172,7 @@ def render(mongo, user):
         st.info("Select a team to continue.")
         return
 
-    tab1, tab2 = st.tabs([":material/groups_2: Register attendance", ":material/table_chart: Attendande overview"])
+    tab1, tab2, tab3, tab4 = st.tabs([":material/groups_2: Register training attendance", ":material/table_chart: Training attendance overview", ":material/timer: Register match minutes", ":material/table_chart: Match minutes overview"])
 
     with tab1:
 
@@ -305,7 +305,6 @@ def render(mongo, user):
             except Exception as e:
                 st.error(f"Failed to save attendance: {e}", icon=":material/error_outline:")
 
-
     with tab2:
         st.subheader(":material/table_chart: Attendance Overview")
 
@@ -366,3 +365,13 @@ def render(mongo, user):
 
         except Exception as e:
             st.error(f"Failed to build overview: {e}")
+
+    with tab3:
+        st.subheader(":material/timer: Register Match Minutes")
+
+        st.write("Under construction... coming soon!")
+
+    with tab4:
+        st.subheader(":material/table_chart: Match Minutes Overview")
+
+        st.write("Under construction... coming soon!")  
