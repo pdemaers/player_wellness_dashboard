@@ -1,6 +1,9 @@
 from streamlit_option_menu import option_menu
 from streamlit_authenticator import Authenticate
 import streamlit as st
+
+from utils.constants import PAGE_ICONS, ROLE_ALLOWED_PAGES, Role
+
 from db.mongo_wrapper import MongoWrapper, DatabaseError
 from views import (
     roster_management, 
@@ -15,7 +18,6 @@ from views import (
     rpe_data_quality
 )
 
-from utils.constants import PAGE_ICONS, ROLE_ALLOWED_PAGES, Role
 
 # --- ROLE CONFIG --------------------------------------------------------------
 PAGES = {
