@@ -635,28 +635,39 @@ class MongoWrapper:
 
     def get_roster_players(self, team=None):
         """Return all players, optionally filtered by team."""
-        query = {"team": team} if team else {}
-        return list(self.db["roster"].find(query))
+        try:
+            query = {"team": team} if team else {}
+            return list(self.db["roster"].find(query))
+        except Exception as e:
+            raise DatabaseError(f"Failed to fetch roster players: {e}")
 
     def get_latest_pdp_for_player(self, player_id):
         """Get the most recent PDP for a given player."""
-        return self.db["player_pdp"].find_one(
-            {"player_id": player_id},
-            sort=[("last_updated", -1)]
-        )
+        try:
+            return self.db["player_pdp"].find_one(
+                {"player_id": player_id},
+                sort=[("last_updated", -1)]
+            )
+        except Exception as e:
+            raise DatabaseError(f"Failed to fetch latest PDP for player {player_id}: {e}")
 
     def insert_new_pdp(self, pdp_data):
         """Insert a new PDP document into the collection."""
-        return self.db["player_pdp"].insert_one(pdp_data).inserted_id
-    
+        try:
+            return self.db["player_pdp"].insert_one(pdp_data).inserted_id
+        except Exception as e:
+            raise DatabaseError(f"Failed to insert new PDP: {e}")
 
     def get_all_pdps_for_player(self, player_id: str):
         """
         Returns all PDP documents for a given player_id, sorted by creation time (descending).
         """
-        collection = self.db["player_pdp"]
-        results = list(collection.find({"player_id": player_id}))
-        return results
+        try:
+            collection = self.db["player_pdp"]
+            results = list(collection.find({"player_id": player_id}))
+            return results
+        except Exception as e:
+            raise DatabaseError(f"Failed to fetch all PDPs for player {player_id}: {e}")
 
     # -----------------------------
     # Session attendance functions
