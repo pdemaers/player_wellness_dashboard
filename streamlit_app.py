@@ -15,7 +15,7 @@ from views import (
     rpe_data_quality
 )
 
-from player_wellness_dashboard.utils.constants import PAGE_ICONS, ROLE_ALLOWED_PAGES, Role
+from utils.constants import PAGE_ICONS, ROLE_ALLOWED_PAGES, Role
 
 # --- ROLE CONFIG --------------------------------------------------------------
 PAGES = {
