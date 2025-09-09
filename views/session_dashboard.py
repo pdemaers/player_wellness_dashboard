@@ -5,7 +5,7 @@ from utils.team_selector import team_selector
 from utils.constants import TEAMS
 
 def render(mongo, user):
-    st.title(":material/insert_chart: Session RPE Dashboard")
+    st.title(":material/timer: Session RPE Dashboard")
 
     team = team_selector(TEAMS)
     if not team:
