@@ -646,7 +646,7 @@ class MongoWrapper:
     # Player PDP functions
     # ---------------------
 
-    def get_roster_players(self, team=None):
+    def get_roster_players(self, team: str = None) -> List[Dict[str, Any]]:
         """Return all players, optionally filtered by team."""
         try:
             query = {"team": team} if team else {}
@@ -744,12 +744,12 @@ class MongoWrapper:
         except Exception as e:
             raise DatabaseError(f"Failed to fetch recent sessions: {e}") from e
 
-    def get_roster_players(self, team: str) -> List[Dict[str, Any]]:
-        """Return all players for a team from `roster`."""
-        try:
-            return list(self.db["roster"].find({"team": team}, {"_id": 0}))
-        except Exception as e:
-            raise DatabaseError(f"Failed to fetch roster: {e}") from e
+    # def get_roster_players(self, team: str) -> List[Dict[str, Any]]:
+    #     """Return all players for a team from `roster`."""
+    #     try:
+    #         return list(self.db["roster"].find({"team": team}, {"_id": 0}))
+    #     except Exception as e:
+    #         raise DatabaseError(f"Failed to fetch roster: {e}") from e
 
     def upsert_attendance_full(
         self,
