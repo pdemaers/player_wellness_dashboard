@@ -1,11 +1,16 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from utils.team_selector import team_selector
+from utils.constants import TEAMS
 
 def render(mongo, user):
     st.title(":material/insert_chart: Session RPE Dashboard")
 
-    team = st.radio("Select Team", options=["U18", "U21"], horizontal=True)
+    team = team_selector(TEAMS)
+    if not team:
+        st.info("Select a team to continue.", icon=":material/info:")
+        return
 
     try:
         data = mongo.get_session_rpe_aggregates(team=team)
@@ -17,11 +22,11 @@ def render(mongo, user):
         df["avg_load_per_session"] = df["total_load"] / df["session_count"]
         df["avg_load_per_player"] = df["total_load"] / df["player_count"]
         
-        # Line graph: Total vs Average Player Load per Week
-        weekly_df = df.groupby("week")[["total_load", "avg_load_per_player"]].sum().reset_index()
-        fig1 = px.line(weekly_df, x="week", y=["total_load", "avg_load_per_player"],
-                       markers=True, title="Weekly Load: Total vs Avg Player")
-        st.plotly_chart(fig1, use_container_width=True)
+        # # Line graph: Total vs Average Player Load per Week
+        # weekly_df = df.groupby("week")[["total_load", "avg_load_per_player"]].sum().reset_index()
+        # fig1 = px.line(weekly_df, x="week", y=["total_load", "avg_load_per_player"],
+        #                markers=True, title="Weekly Load: Total vs Avg Player")
+        # st.plotly_chart(fig1, use_container_width=True)
 
         # Bar graph: Avg Load per Session Type
         type_df = df.groupby("session_type")["avg_load_per_session"].mean().reset_index()
@@ -60,4 +65,4 @@ def render(mongo, user):
         st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error(f"Error loading session RPE data: {e}")
+        st.error(f"Error loading session RPE data: {e}", icon=":material/error:")
