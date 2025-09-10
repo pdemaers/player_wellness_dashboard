@@ -11,9 +11,10 @@ The **Attendance Management** page allows coaches to both register attendance fo
 - The team selector is displayed **outside the tabs**, so it applies to both registration and overview.
 
 ### Tabs
-The page is divided into two tabs:
+The page is divided into four tabs:
 
-1. **Register Attendance**
+1. **Register Training Attendance**
+
    - Select session by date (shown in `dd/mm/yyyy`, defaults to today).
    - All players of the team are shown as **pills**.  
      Coaches select the players who were present.
@@ -30,7 +31,8 @@ The page is divided into two tabs:
      - 🥇 Other team
    - Attendance is saved in one step. Both presence and absence are written to the database.
 
-2. **Overview**
+2. **Training Attendance Overview**
+
    - Displays a **player × session date matrix** with compact emojis.
    - **Rows** = players, **Columns** = session dates (shown as `dd/mm` with the full date available in a tooltip).
    - **Cells** = emoji for attendance status:
@@ -42,6 +44,10 @@ The page is divided into two tabs:
      - Static mode (`pd.Styler`): perfectly centered icons, non-interactive.
    - A legend is displayed below the table.
 
+3. **Register Match Minutes**
+
+4. **Match Minutes Overview**
+
 ---
 
 ## Data Flow
@@ -50,6 +56,7 @@ The page is divided into two tabs:
 - **Rosters** are loaded via `MongoWrapper.get_roster_players(team=...)`.  
 - **Attendance** is written and updated via `MongoWrapper.upsert_attendance_full(...)`.  
 - **Overview matrix** is generated with a helper that:
+
   - Fetches all sessions (deduplicated by date).
   - Builds a DataFrame with one row per player, one column per session date.
   - Fills cells with emojis depending on attendance status.
