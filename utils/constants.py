@@ -4,7 +4,7 @@ Keep this module dependency-free to avoid circular imports.
 """
 
 from enum import Enum
-from typing import Dict, List, Mapping, Sequence
+from typing import Dict, List, Mapping, Sequence, Literal
 
 # --- Teams and absence reasons -------------------------------------------
 
@@ -81,3 +81,10 @@ ROLE_ALLOWED_PAGES = {
         "Wellness Dashboard", "RPE Dashboard"
     ],
 }
+
+# Allowed styles for player name rendering
+NameStyle = Literal[
+    "LAST_FIRST",         # "DOE, John"
+    "First Last",         # "John Doe"
+    "LAST FirstInitial."  # "DOE J."
+]

@@ -1,16 +1,14 @@
 """Attendance Management view.
 
-Provides a coach interface to:
-- Register player attendance (present + absent reasons) in one step.
-- Select session by date (dd/mm/yyyy); each team has max one session per day.
+Tabs:
+- Register attendance (present + absence reasons in one go)
+- Overview (player × session matrix with emojis)
+- Match minutes (one-and-done entry per match)
 
-Data flow:
-    - Session dates loaded via `MongoWrapper.get_recent_sessions(team=...)` (dedup by date).
-    - Rosters retrieved from `MongoWrapper.get_roster_players(team=...)`.
-    - Full attendance saved via `MongoWrapper.upsert_attendance_full()`.
-
-Import safety:
-    - This module must be import-safe for mkdocstrings; avoid side effects at import time.
+Assumes:
+    - NameStyle & ABSENCE_REASONS in `constants`
+    - get_player_names(), get_recent_sessions(), upsert_attendance_full(),
+      save_match_minutes_once() in `mongo_wrapper`.
 """
 
 from __future__ import annotations
@@ -29,6 +27,8 @@ from utils.constants import TEAMS, ABSENCE_REASONS, PRESENT_EMOJI, UNKNOWN_EMOJI
 # Emojies used in the overview
 EMOJI_BY_REASON_ID = {r["id"]: r["emoji"] for r in ABSENCE_REASONS}
 
+# --- Module helpers ------------------------------------------------------------
+
 def _ddmmyyyy(d: date | datetime | str) -> str:
     """Render a date-like field as dd/mm/yyyy (best-effort)."""
     if isinstance(d, datetime):
@@ -41,7 +41,6 @@ def _ddmmyyyy(d: date | datetime | str) -> str:
         return parsed.strftime("%d/%m/%Y")
     except Exception:
         return str(d)
-
 
 def _to_date(d: date | datetime | str) -> date:
     """Parse a date-like field to a date; fallback to today on failure."""
@@ -56,6 +55,70 @@ def _to_date(d: date | datetime | str) -> date:
     
 # def icon_html(icon: str) -> str:
 #     return f"<span class='material-icons'>{icon}</span>"
+
+def _to_short_label(full_str: str) -> str:
+    """Return 'dd/mm' from 'dd/mm/yyyy' (safe)."""
+    try:
+        dt = datetime.strptime(str(full_str), "%d/%m/%Y")
+        return dt.strftime("%d/%m")
+    except Exception:
+        return str(full_str)
+
+def _safe_legend(absence_reasons) -> str:
+    """Legend string built robustly from constants.ABSENCE_REASONS."""
+    parts = []
+    for r in absence_reasons:
+        emoji = r.get("emoji", "")
+        label = r.get("label", "")
+        parts.append(f"{emoji} {label}".strip())
+    middle = "  ·  ".join(map(str, parts))
+    return f"Legend: {PRESENT_EMOJI} present  ·  {middle}  ·  {UNKNOWN_EMOJI} no entry"
+
+def _pad_center(x: str) -> str:
+    """Cheap visual centering for st.data_editor (adds spacing)."""
+    return f" {x} "
+
+def _select_session_by_date(
+    mongo,
+    team: str,
+    title: str,
+    *,
+    show_all: bool,
+    max_dates: int,
+    up_to: date,
+    session_type: str | None,   # "M" for matches, None for trainings/all
+):
+    """Render a date-only selectbox and return (session_dict, selected_label)."""
+    fetch_limit = None if show_all else max_dates
+    recent = mongo.get_recent_sessions(
+        team=team,
+        limit=fetch_limit,
+        up_to_date=up_to,
+        session_type=session_type,
+    )
+
+    # De-duplicate by date (keep latest per day)
+    seen_dates = set()
+    date_to_session: Dict[date, Dict[str, Any]] = {}
+    for s in sorted(recent, key=lambda x: _to_date(x.get("date")), reverse=True):
+        d = _to_date(s.get("date"))
+        if d not in seen_dates:
+            seen_dates.add(d)
+            date_to_session[d] = s
+        if not show_all and len(date_to_session) >= max_dates:
+            break
+
+    if not date_to_session:
+        return None, None
+
+    all_dates_desc = sorted(date_to_session.keys(), reverse=True)
+    default_idx = all_dates_desc.index(date.today()) if date.today() in date_to_session else 0
+    labels = [_ddmmyyyy(d) for d in all_dates_desc]
+
+    selected_label = st.selectbox(title, options=labels, index=default_idx, width=200)
+    selected_date = all_dates_desc[labels.index(selected_label)]
+    session = date_to_session[selected_date]
+    return session, selected_label
     
 def build_attendance_overview_df(
     mongo,
@@ -160,12 +223,13 @@ def build_attendance_overview_df(
     df = pd.DataFrame(matrix, index=[p["name"] for p in players])
     return df
 
+# --- Main render function ---------------------------------------------------
 
 def render(mongo, user):
-    """Render attendance page with one-step present/absent registration."""
+    """Render attendance page with one-step present/absent and match minutes registration."""
     
-    st.title(":material/how_to_reg: Attendance")
-
+    st.title(":material/how_to_reg: Attendance & Match Minutes")
+             
     # --- TEAM ---------------------------------------------------------------
     team = team_selector(TEAMS)
     if not team:
@@ -177,7 +241,7 @@ def render(mongo, user):
     with tab1:
 
         # --- SESSIONS (DATE-ONLY) ----------------------------------------------
-        
+
         st.subheader(":material/groups_2: Register Attendance")
 
         show_all = st.toggle(
@@ -186,63 +250,99 @@ def render(mongo, user):
             help="Temporarily list all sessions to backfill absences."
         )
 
-        fetch_limit = None if show_all else 6  # None => no cap
-
-        recent_sessions = mongo.get_recent_sessions(
+        session, selected_label = _select_session_by_date(
+            mongo=mongo,
             team=team,
-            limit=fetch_limit,
-            up_to_date=date.today()
+            title="Session date (dd/mm/yyyy)",
+            show_all=show_all,
+            max_dates=6,
+            up_to=date.today(),
+            session_type=["T1", "T2", "T3", "T4"],  # ✅ only trainings
         )
-
-        # Deduplicate by date (keep the latest per day)
-        seen_dates = set()
-        date_to_session = {}
-        for s in sorted(recent_sessions, key=lambda x: _to_date(x.get("date")), reverse=True):
-            d = _to_date(s.get("date"))
-            if d not in seen_dates:
-                seen_dates.add(d)
-                date_to_session[d] = s
-            if not show_all and len(date_to_session) >= 6:
-                break
-
-        if not date_to_session:
+        if not session:
             st.warning("No usable session dates found.")
-            return
+            st.stop()
 
-        all_dates_desc = sorted(date_to_session.keys(), reverse=True)
-        # Default to today if present; otherwise the most recent date
-        default_idx = 0
-        if date.today() in date_to_session:
-            default_idx = all_dates_desc.index(date.today())
-
-        date_labels = [_ddmmyyyy(d) for d in all_dates_desc]
-        selected_label = st.selectbox("Session date (dd/mm/yyyy)", options=date_labels, index=default_idx, width=200)
-        selected_date = all_dates_desc[date_labels.index(selected_label)]
-        session = date_to_session[selected_date]
         session_id = session.get("session_id")
 
-        # --- ROSTER -------------------------------------------------------------
-        try:
-            roster = mongo.get_roster_players(team=team)
-        except Exception as e:
-            st.error(f"Unable to load roster: {e}")
-            return
+        # Fetch players from the new helper; it returns {"player_id", "display_name", ...}
+        players_raw = mongo.get_player_names(team=team, style="LAST_FIRST")
 
-        if not roster:
-            st.warning("No players found for this team.")
-            return
+        # Normalize so the rest of the UI can use p["name"]
+        players = [{"player_id": p["player_id"], "name": p.get("display_name") or p.get("name", "")}
+                for p in players_raw]
 
-        # Normalize and sort players for stable UI
-        players = []
-        for p in roster:
-            pid = p.get("player_id")
-            try:
-                pid = int(pid)
-            except Exception:
-                pass
-            name = f"{p.get('player_last_name', p.get('last_name','')).upper()}, {p.get('player_first_name', p.get('first_name',''))}".strip(", ")
-            players.append({"player_id": pid, "name": name})
-        players.sort(key=lambda x: x["name"])
+        # Safety: drop any entries that somehow still lack a name
+        players = [p for p in players if p["name"]]
+
+        # Sort (stable)
+        players.sort(key=lambda x: (x["name"], x["player_id"]))
+        
+        # st.subheader(":material/groups_2: Register Attendance")
+
+        # show_all = st.toggle(
+        #     "Show all session dates",
+        #     value=False,
+        #     help="Temporarily list all sessions to backfill absences."
+        # )
+
+        # fetch_limit = None if show_all else 6  # None => no cap
+
+        # recent_sessions = mongo.get_recent_sessions(
+        #     team=team,
+        #     limit=fetch_limit,
+        #     up_to_date=date.today()
+        # )
+
+        # # Deduplicate by date (keep the latest per day)
+        # seen_dates = set()
+        # date_to_session = {}
+        # for s in sorted(recent_sessions, key=lambda x: _to_date(x.get("date")), reverse=True):
+        #     d = _to_date(s.get("date"))
+        #     if d not in seen_dates:
+        #         seen_dates.add(d)
+        #         date_to_session[d] = s
+        #     if not show_all and len(date_to_session) >= 6:
+        #         break
+
+        # if not date_to_session:
+        #     st.warning("No usable session dates found.")
+        #     return
+
+        # all_dates_desc = sorted(date_to_session.keys(), reverse=True)
+        # # Default to today if present; otherwise the most recent date
+        # default_idx = 0
+        # if date.today() in date_to_session:
+        #     default_idx = all_dates_desc.index(date.today())
+
+        # date_labels = [_ddmmyyyy(d) for d in all_dates_desc]
+        # selected_label = st.selectbox("Session date (dd/mm/yyyy)", options=date_labels, index=default_idx, width=200)
+        # selected_date = all_dates_desc[date_labels.index(selected_label)]
+        # session = date_to_session[selected_date]
+        # session_id = session.get("session_id")
+
+        # # --- ROSTER -------------------------------------------------------------
+        # try:
+        #     roster = mongo.get_roster_players(team=team)
+        # except Exception as e:
+        #     st.error(f"Unable to load roster: {e}")
+        #     return
+
+        # if not roster:
+        #     st.warning("No players found for this team.")
+        #     return
+
+        # # Normalize and sort players for stable UI
+        # players = []
+        # for p in roster:
+        #     pid = p.get("player_id")
+        #     try:
+        #         pid = int(pid)
+        #     except Exception:
+        #         pass
+        #     name = f"{p.get('player_last_name', p.get('last_name','')).upper()}, {p.get('player_first_name', p.get('first_name',''))}".strip(", ")
+        #     players.append({"player_id": pid, "name": name})
+        # players.sort(key=lambda x: x["name"])
 
         # --- PRESENTS SELECTION (PILLS) -----------------------------------------
         st.subheader(":material/group_add: Mark Presents")
@@ -369,7 +469,60 @@ def render(mongo, user):
     with tab3:
         st.subheader(":material/timer: Register Match Minutes")
 
-        st.write("Under construction... coming soon!")
+        # Always list all matches for simplicity
+        match_session, match_label = _select_session_by_date(
+            mongo=mongo,
+            team=team,
+            title="Match date",
+            show_all=True,
+            max_dates=999,
+            up_to=date.today(),
+            session_type="M",
+        )
+        if not match_session:
+            st.info("No matches found for this team.")
+            return
+
+        match_session_id = match_session.get("session_id")
+
+        # Fetch players from the new helper; it returns {"player_id", "display_name", ...}
+        players_raw = mongo.get_player_names(team=team, style="LAST_FIRST")
+
+        # Normalize so the rest of the UI can use p["name"]
+        players = [{"player_id": p["player_id"], "name": p.get("display_name") or p.get("name", "")}
+                for p in players_raw]
+
+        # Safety: drop any entries that somehow still lack a name
+        players = [p for p in players if p["name"]]
+
+        # Sort (stable)
+        players.sort(key=lambda x: (x["name"], x["player_id"]))
+
+        st.caption("Enter minutes played for each player in the selected match.")
+        col_left, col_right = st.columns(2)
+        minutes_input: Dict[int, int] = {}
+        for i, pl in enumerate(players):
+            container = col_left if i % 2 == 0 else col_right
+            with container:
+                minutes_input[pl["player_id"]] = st.number_input(
+                    label=pl["name"],
+                    min_value=0, max_value=120,
+                    value=0, step=1,
+                    key=f"mm_{match_session_id}_{pl['player_id']}"
+                )
+
+        if st.button("Save match minutes", type="primary", icon=":material/save:"):
+            payload = [{"player_id": int(pid), "minutes": int(val)} for pid, val in minutes_input.items()]
+            try:
+                mongo.save_match_minutes_once(
+                    session_id=match_session_id,
+                    team=team,
+                    minutes_items=payload,
+                    user=user if isinstance(user, str) else getattr(user, "name", str(user))
+                )
+                st.success(f"Match minutes saved for {match_label} — {team}.")
+            except Exception as e:
+                st.error(f"Failed to save match minutes: {e}")
 
     with tab4:
         st.subheader(":material/table_chart: Match Minutes Overview")
