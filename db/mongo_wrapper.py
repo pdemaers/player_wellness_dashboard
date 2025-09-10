@@ -13,9 +13,11 @@ Notes:
 from pymongo import MongoClient
 import pandas as pd
 from datetime import datetime, date, time
-from typing import List, Dict, Any, Optional, Set
+from typing import List, Dict, Any, Optional, Set, Union
 #from pymongo.collection import Collection
 #from pymongo import ASCENDING, DESCENDING
+
+from utils.constants import NameStyle
 
 class DatabaseError(Exception):
     """Lightweight DB error to surface user-friendly messages in the UI."""
@@ -98,6 +100,93 @@ class MongoWrapper:
             return True
         except Exception as e:
             raise DatabaseError(f"Failed to save roster: {e}")
+        
+    def get_roster_players(self, team: str = None) -> List[Dict[str, Any]]:
+        """Return all players, optionally filtered by team."""
+        try:
+            query = {"team": team} if team else {}
+            return list(self.db["roster"].find(query))
+        except Exception as e:
+            raise DatabaseError(f"Failed to fetch roster players: {e}")
+        
+    def _format_player_name(
+        self,
+        doc: Dict[str, Any],
+        style: NameStyle = "LAST_FIRST",
+    ) -> str:
+        """Format a roster doc into a display name.
+
+        Styles:
+            - "LAST_FIRST" (default): "DOE, John"
+            - "First Last": "John Doe"
+            - "LAST FirstInitial.": "DOE J."
+        """
+        first = str(doc.get("player_first_name") or doc.get("first_name") or "").strip()
+        last  = str(doc.get("player_last_name")  or doc.get("last_name")  or "").strip()
+
+        if style == "First Last":
+            return " ".join(p for p in [first, last] if p)
+        if style == "LAST FirstInitial.":
+            fi = f"{first[:1].upper()}." if first else ""
+            return " ".join(p for p in [last.upper(), fi] if p).strip()
+        # default: LAST, First
+        return ", ".join([last.upper(), first]).strip(", ").replace(" ,", ",")
+
+    def get_player_names(
+        self,
+        team: str,
+        style: NameStyle = "LAST_FIRST",
+        include_inactive: bool = False,
+        sort_by_name: bool = True,
+        fields: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Return players with normalized ids and display names.
+
+        Args:
+            team: "U18" | "U21".
+            style: Display style for names.
+            include_inactive: If your roster has an `active` flag, include inactive too.
+            sort_by_name: Sort by the rendered display name.
+            fields: Extra fields to include from roster.
+
+        Returns:
+            [{"player_id": int, "display_name": str, ...}, ...]
+        """
+        try:
+            q: Dict[str, Any] = {"team": team}
+            if not include_inactive:
+                q.update({"$or": [{"active": True}, {"active": {"$exists": False}}]})
+
+            projection = {
+                "_id": 0, "player_id": 1,
+                "player_first_name": 1, "player_last_name": 1,
+                "first_name": 1, "last_name": 1,
+            }
+            if fields:
+                for f in fields:
+                    projection[f] = 1
+
+            docs = list(self.db["roster"].find(q, projection))
+
+            out: List[Dict[str, Any]] = []
+            for d in docs:
+                try:
+                    pid = int(d.get("player_id"))
+                except Exception:
+                    continue
+                display_name = self._format_player_name(d, style=style)
+                item = {"player_id": pid, "display_name": display_name}
+                if fields:
+                    for f in fields:
+                        if f in d:
+                            item[f] = d[f]
+                out.append(item)
+
+            if sort_by_name:
+                out.sort(key=lambda x: (x["display_name"], x["player_id"]))
+            return out
+        except Exception as e:
+            raise DatabaseError(f"Failed to fetch player names: {e}") from e
         
     # -------------------------
     # PDP structure management
@@ -646,14 +735,6 @@ class MongoWrapper:
     # Player PDP functions
     # ---------------------
 
-    def get_roster_players(self, team: str = None) -> List[Dict[str, Any]]:
-        """Return all players, optionally filtered by team."""
-        try:
-            query = {"team": team} if team else {}
-            return list(self.db["roster"].find(query))
-        except Exception as e:
-            raise DatabaseError(f"Failed to fetch roster players: {e}")
-
     def get_latest_pdp_for_player(self, player_id):
         """Get the most recent PDP for a given player."""
         try:
@@ -691,44 +772,37 @@ class MongoWrapper:
         team: str,
         limit: Optional[int] = 6,
         up_to_date: Optional[date] = None,
-        session_type: Optional[str] = None
+        session_type: Union[str, List[str], None] = None,
     ) -> List[Dict[str, Any]]:
-        """Return recent sessions for a team (date DESC), optionally filtered by session_type.
+        """Return recent sessions for a team (date DESC).
 
         Args:
             team: "U18" | "U21".
-            limit: Max number of sessions to fetch; if None or <=0, no limit is applied.
-            up_to_date: Optional cutoff date (include sessions on or before this date).
-            session_type: Optional session type filter ("T1", "T2", "T3", "T4", "M").
-                        Can also be a list of types.
-
-        Notes:
-            - When `up_to_date` is provided, results are restricted to that day or earlier.
-            - When `session_type` is provided, only sessions of that type(s) are returned.
-            - When `limit` is provided, we fetch a bit extra (×2) to allow for date-dedup.
+            limit: Max number of sessions to fetch. If None or <=0, no limit is applied.
+            up_to_date: Include sessions on or before this date.
+            session_type: Filter by a single type (e.g., "M") or by multiple types (e.g., ["T1","T2","T3","T4"]).
         """
         try:
             q: Dict[str, Any] = {"team": team}
             if up_to_date:
                 end = datetime.combine(up_to_date, time.max)
                 q["date"] = {"$lte": end}
+
             if session_type:
                 if isinstance(session_type, list):
                     q["session_type"] = {"$in": session_type}
                 else:
                     q["session_type"] = session_type
 
-            cur = (
-                self.db["sessions"]
-                .find(q, {"_id": 0})
-                .sort([("date", -1)])  # DESC
-            )
+            cur = self.db["sessions"].find(q, {"_id": 0}).sort([("date", -1)])
 
+            # Apply limit only when requested
             if isinstance(limit, int) and limit > 0:
-                cur = cur.limit(limit * 2)  # fetch extra for date-dedup
+                cur = cur.limit(limit * 2)  # extra to tolerate client-side date dedup
 
             records = list(cur)
 
+            # Stable sort (handles datetime/date/ISO strings)
             def _key(s):
                 d = s.get("date")
                 if isinstance(d, datetime):
@@ -745,7 +819,6 @@ class MongoWrapper:
             if isinstance(limit, int) and limit > 0:
                 return records[: (limit * 2)]
             return records
-
         except Exception as e:
             raise DatabaseError(f"Failed to fetch recent sessions: {e}") from e
 
@@ -840,3 +913,41 @@ class MongoWrapper:
             )
         except Exception as e:
             raise DatabaseError(f"Failed to upsert attendance: {e}") from e
+        
+    def save_match_minutes_once(
+        self,
+        session_id: str,
+        team: str,
+        minutes_items: List[Dict[str, Any]],
+        user: str,
+    ) -> None:
+        """Create match minutes for a session exactly once.
+
+        - Inserts a new document for session_id; raises if it already exists.
+        - Normalizes minutes to int and clamps to [0, 120].
+        """
+        try:
+            existing = self.db["match_minutes"].find_one({"session_id": session_id}, {"_id": 1})
+            if existing:
+                raise DatabaseError("Match minutes already saved for this session (immutable by design).")
+
+            cleaned = []
+            for item in minutes_items:
+                pid = int(item["player_id"])
+                mins = max(0, min(120, int(item.get("minutes", 0))))
+                cleaned.append({"player_id": pid, "minutes": mins})
+
+            now = datetime.utcnow()
+            doc = {
+                "session_id": session_id,
+                "team": team,
+                "minutes": cleaned,
+                "created": now,
+                "last_updated": now,
+                "user": user,
+            }
+            self.db["match_minutes"].insert_one(doc)
+        except DatabaseError:
+            raise
+        except Exception as e:
+            raise DatabaseError(f"Failed to save match minutes: {e}") from e
