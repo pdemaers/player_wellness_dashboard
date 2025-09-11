@@ -12,15 +12,15 @@ def render(mongo, user):
     if not team:
         st.info("Select a team to continue.", icon=":material/info:")
         return
-
+    
     # --- Load roster ---
-    roster = mongo.get_roster_players(team=team)
-    if not roster:
+    players = mongo.get_player_names(team=team, style="LAST_FIRST")
+    if not players:
         st.warning("No players found in roster.")
         return
 
     # --- Player selection ---
-    player_lookup = {f"{p['player_last_name']}, {p['player_first_name']}": p for p in roster}
+    player_lookup = {p["display_name"]: p for p in players}
     selected_name = st.selectbox("Select a player", list(player_lookup.keys()))
     player = player_lookup[selected_name]
     player_id = player["player_id"]
