@@ -3,7 +3,7 @@
 ## Collections
 
 ### `roster`
-- `player_id`: str (e.g., "21539")
+- `player_id`: str
 - `player_first_name`: str
 - `player_last_name`: str
 - `team`: "U18" | "U21"
@@ -17,7 +17,7 @@
 
 ### `player_rpe`
 - `player_id`: str | int
-- `session_id`: str (e.g., "20250805U21")
+- `session_id`: str
 - `date`: ISO datetime string
 - `rpe_score`: int (1–10)
 - `training_minutes`: int
@@ -31,7 +31,42 @@
 - `duration`: int
 - `weeknumber`: int
 
+### `attendance`
+- `session_id`: str
+- `team`: str
+- `present`: array of player_id (str or int)
+- `absent`: array of objects `{ player_id: str|int, reason: str }`
+- `created`: ISO datetime string
+- `last_updated`: ISO datetime string
+- `user`: str
+
+### `match_minutes`
+- `match_id`: str
+- `team`: str
+- `date`: ISO date string
+- `player_minutes`: array of objects `{ player_id: str|int, minutes: int }`
+- `opponent`: str
+- `competition`: str
+
+### `pdp_structure`
+- `pdp_id`: str (unique)
+- `name`: str
+- `description`: str
+- `criteria`: array of objects `{ criterion_id: str, name: str, description: str }`
+- `created`: ISO datetime string
+
+### `player_pdp`
+- `player_id`: str|int
+- `pdp_id`: str
+- `criteria_scores`: array of objects `{ criterion_id: str, score: int, comment: str }`
+- `review_date`: ISO datetime string
+- `reviewer`: str
+
 ## Indexing (recommended)
 - `player_wellness`: `{timestamp:1}`, `{player_id:1, timestamp:1}`
 - `player_rpe`: `{session_id:1}`, `{player_id:1}`, `{timestamp:1}`
 - `sessions`: `{session_id:1}` (unique), `{team:1, weeknumber:1}`
+- `attendance`: `{session_id:1}`, `{team:1}`
+- `match_minutes`: `{match_id:1}`, `{team:1, date:1}`
+- `pdp_structure`: `{pdp_id:1}` (unique)
+- `player_pdp`:
