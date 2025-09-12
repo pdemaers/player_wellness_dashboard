@@ -64,6 +64,7 @@ PAGE_ICONS = {
     "Create PDP": "file-earmark-plus",
     "PDP Library": "archive",
     "Attendance": "person-check",
+    "Injury Management": "hospital",
     "RPE data quality": "database-fill-exclamation"
 }
 
@@ -71,7 +72,8 @@ ROLE_ALLOWED_PAGES = {
     "admin": [
         "Roster Management", "Session Management", "PDP Structure",
         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
-        "Create PDP", "PDP Library", "Attendance", "RPE data quality"
+        "Create PDP", "PDP Library", "Attendance", "Injury Management", 
+        "RPE data quality"
     ],
     "coach": [
         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
