@@ -90,3 +90,6 @@ NameStyle = Literal[
     "First Last",         # "John Doe"
     "LAST FirstInitial."  # "DOE J."
 ]
+
+IMAGERY_TYPES = ["", "MRI", "Echo", "X-ray"]
+INJURY_DURATION_UNITS = ["Day(s)", "Week(s)", "Month(s)"]

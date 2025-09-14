@@ -16,6 +16,7 @@ from datetime import datetime, date, time
 from typing import List, Dict, Any, Optional, Set, Union
 #from pymongo.collection import Collection
 #from pymongo import ASCENDING, DESCENDING
+from pymongo.errors import PyMongoError
 
 from utils.constants import NameStyle
 
@@ -951,3 +952,35 @@ class MongoWrapper:
             raise
         except Exception as e:
             raise DatabaseError(f"Failed to save match minutes: {e}") from e
+    
+    # --- Injury functions ------------------------------------------------------------
+
+    def insert_player_injury(self, injury_doc: dict) -> str:
+        """Insert a new injury document for a player and return the inserted ID."""
+        result = self.db["player_injuries"].insert_one(injury_doc)
+        return str(result.inserted_id)
+
+    def get_player_injuries(self, player_id: str, sort_desc: bool = True) -> list:
+        """Fetch all injuries for a player, sorted by creation date (newest first by default)."""
+        sort_order = -1 if sort_desc else 1
+        return list(
+            self.db["player_injuries"].find({"player_id": player_id}).sort("created_at", sort_order)
+        )
+    
+    def add_injury_comment(self, injury_id: str, text: str, author_email: str) -> None:
+        """Append a comment to an injury's `comments` array."""
+        try:
+            now = datetime.now().isoformat()
+            update = {
+                "$push": {"comments": {
+                    "ts": now,
+                    "author": author_email,
+                    "text": text
+                }},
+                "$set": {"last_updated": now}
+            }
+            res = self.db["injuries"].update_one({"injury_id": injury_id}, update)
+            if res.matched_count == 0:
+                raise DatabaseError("Injury not found.")
+        except PyMongoError as e:
+            raise DatabaseError(f"Could not add comment: {e}")
