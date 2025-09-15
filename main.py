@@ -35,30 +35,6 @@ PAGES = {
     "RPE data quality":  lambda mongo, user: rpe_data_quality.render(mongo, user=user),
 }
 
-# PAGE_ICONS = {
-#     "Roster Management": "people-fill",
-#     "Session Management": "calendar2-event-fill",
-#     "PDP Structure": "file-earmark-text",
-#     "Wellness Dashboard": "heart-pulse",
-#     "RPE Dashboard": "bar-chart-line",
-#     "Session Dashboard": "clipboard-data",
-#     "Create PDP": "file-earmark-plus",
-#     "PDP Library": "archive",
-#     "Attendance": "person-check",
-#     "RPE data quality": "database-fill-exclamation"
-# }
-
-# ROLE_ALLOWED_PAGES = {
-#     "admin": list(PAGES.keys()),
-#     "coach": [
-#         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
-#         "Create PDP", "PDP Library", "Attendance"
-#     ],
-#     "physio": [
-#         "Wellness Dashboard", "RPE Dashboard"
-#     ],
-# }
-
 def get_user_role(username: str) -> str:
     """
     Get role for the authenticated user from secrets.
@@ -80,7 +56,7 @@ def allowed_pages_for(role: str) -> list[str]:
 
 def guard_access(role: str, page: str) -> None:
     if page not in allowed_pages_for(role):
-        st.error("You do not have access to this page.")
+        st.error("You do not have access to this page.", icon=":material/error:")
         st.stop()
 
 # --- YOUR MAIN() WITH MINIMAL CHANGES ----------------------------------------
@@ -106,7 +82,7 @@ def main():
     try:
         authenticator.login()
     except Exception as e:
-        st.error(f"Authentication error: {e}")
+        st.error(f"Authentication error: {e}", icon=":material/error:")
         st.stop()
 
     auth_status = st.session_state.get("authentication_status")

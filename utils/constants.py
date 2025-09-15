@@ -80,7 +80,7 @@ ROLE_ALLOWED_PAGES = {
         "Create PDP", "PDP Library", "Attendance"
     ],
     "physio": [
-        "Wellness Dashboard", "RPE Dashboard"
+        "Wellness Dashboard", "RPE Dashboard", "Injury Management"
     ],
 }
 
