@@ -108,11 +108,16 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
     # --- Calendar View -------------------------------------------------------
     st.subheader("Calendar")
 
+    if "selected_team" not in st.session_state:
+        st.session_state["selected_team"] = "U18"
+
     team = team_selector(TEAMS)
     if not team:
-            st.info("Select a team to continue.")
+            st.info("Select a team to continue.", icon=":material/info:")
             return
-
+    
+    st.session_state["selected_team"] = team
+    
     # Fetch sessions as DataFrame (use your existing wrapper)
     try:
         df = mongo.get_sessions_df(team=team)
