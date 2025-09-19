@@ -118,6 +118,17 @@ def main():
                 default_index=0
             )
 
+            # --- Link to application documentation on GitHub ---
+            # st.markdown("### 📖 Documentation")
+            st.markdown(
+                """
+                📖 <a href="https://pdemaers.github.io/player_wellness_dashboard/" target="_blank">
+                     Open Documentation &#8599;
+                </a>
+                """,
+                unsafe_allow_html=True
+            )
+
         # --- ROUTING (with guard) ---
         guard_access(role, selected)
         PAGES[selected](mongo, user=username)
