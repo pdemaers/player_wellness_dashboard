@@ -111,10 +111,10 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
     if "selected_team" not in st.session_state:
         st.session_state["selected_team"] = "U18"
 
-    team = team_selector(TEAMS)
+    team = team_selector(TEAMS, session_key="selected_team", widget_key="team_selector_calendar")
     if not team:
-            st.info("Select a team to continue.", icon=":material/info:")
-            return
+        st.info("Select a team to continue.", icon=":material/info:")
+        return
     
     st.session_state["selected_team"] = team
     
@@ -140,9 +140,6 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
         key=f"calendar_{team}",
         options=None,  # use defaults; supply your own dict to override
     )
-
-    # st.markdown("**Legend**")
-    # render_legend(SESSION_TYPE_STYLES)
 
     # Optional: react to interactions
     if state.get("callback") == "dateClick":

@@ -1,6 +1,10 @@
 import streamlit as st
 
-def team_selector(teams: list[str], key: str = "team") -> str:
+def team_selector(
+        teams: list[str],
+        *,
+        session_key: str = "selected_team",
+        widget_key: str = "team_selector") -> str:
     """
     Simple reusable team selector using segmented controls.
 
@@ -11,14 +15,16 @@ def team_selector(teams: list[str], key: str = "team") -> str:
     Returns:
         The selected team (string).
     """
-    if key not in st.session_state:
-        st.session_state[key] = teams[0]  # default to first team
+    if session_key not in st.session_state:
+        st.session_state[session_key] = teams[0]  # default to first team
+
+    current = st.session_state[session_key]
 
     selected = st.segmented_control(
         "Select team",
         options=teams,
         selection_mode="single",
-        default=None,
-        key=key,
+        default=current if current in teams else 0,
+        key=widget_key,
     )
     return selected
