@@ -21,3 +21,4 @@ utils/generate_test_data.py
 utils/password_generator.py
 utils/deduplicate_rpe.py
 utils/deduplicate_wellness.py
+utils/mongo_docgen.py

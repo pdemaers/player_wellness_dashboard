@@ -1,0 +1,36 @@
+digraph ER {
+  rankdir=LR;
+  node [shape=box, style="rounded,filled", fillcolor="#f8f9fb"];
+  "attendance";
+  "match_minutes";
+  "meal_diary_entries";
+  "pdp_structure";
+  "player_injuries";
+  "player_pdp";
+  "player_rpe";
+  "player_rpe_archive_20250904_160822";
+  "player_rpe_archive_20250910_150528";
+  "player_wellness";
+  "player_wellness_archive_20250910_151750";
+  "roster";
+  "sessions";
+  "weight_registration";
+  "attendance" -> "sessions" [label="session_id", arrowhead=normal];
+  "match_minutes" -> "sessions" [label="session_id", arrowhead=normal];
+  "meal_diary_entries" -> "roster" [label="player_id", arrowhead=normal];
+  "player_injuries" -> "roster" [label="player_id", arrowhead=normal];
+  "player_pdp" -> "roster" [label="player_id", arrowhead=normal];
+  "player_rpe" -> "roster" [label="player_id", arrowhead=normal];
+  "player_rpe" -> "sessions" [label="session_id", arrowhead=normal];
+  "player_rpe_archive_20250904_160822" -> "roster" [label="player_id", arrowhead=normal];
+  "player_rpe_archive_20250904_160822" -> "sessions" [label="session_id", arrowhead=normal];
+  "player_rpe_archive_20250910_150528" -> "roster" [label="player_id", arrowhead=normal];
+  "player_rpe_archive_20250910_150528" -> "sessions" [label="session_id", arrowhead=normal];
+  "player_wellness" -> "roster" [label="player_id", arrowhead=normal];
+  "player_wellness" -> "sessions" [label="session_id", arrowhead=normal];
+  "player_wellness_archive_20250910_151750" -> "roster" [label="player_id", arrowhead=normal];
+  "player_wellness_archive_20250910_151750" -> "sessions" [label="session_id", arrowhead=normal];
+  "roster" -> "roster" [label="player_id", arrowhead=normal];
+  "sessions" -> "sessions" [label="session_id", arrowhead=normal];
+  "weight_registration" -> "roster" [label="player_id", arrowhead=normal];
+}

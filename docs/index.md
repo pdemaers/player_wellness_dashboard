@@ -9,6 +9,7 @@ Start here:
 - [Session Management](admin/session_management.md)
 - [Roster Management](admin/roster_management.md)
 - [Attendance Management](admin/attendance_management.md)
+- [Injury Management](admin/injury_management.md)
 
 ## About
 - Built with **Streamlit** and **MongoDB** for U18/U21 workflows (wellness, RPE, sessions, PDP).
