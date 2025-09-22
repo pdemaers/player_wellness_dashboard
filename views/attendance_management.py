@@ -148,7 +148,7 @@ def build_attendance_overview_df(
     up_to = up_to or date.today()
 
     # --- fetch sessions (dedup by date, latest per day) ---
-    sessions = mongo.get_recent_sessions(team=team, limit=None, up_to_date=up_to, session_type=["T1", "T2", "T3", "T4"])
+    sessions = mongo.get_recent_sessions(team=team, limit=limit, up_to_date=up_to, session_type=["T1", "T2", "T3", "T4"])
     sessions_sorted = sorted(sessions, key=lambda s: _to_date(s.get("date")), reverse=False)
 
     seen = set()
@@ -277,72 +277,6 @@ def render(mongo, user):
 
         # Sort (stable)
         players.sort(key=lambda x: (x["name"], x["player_id"]))
-        
-        # st.subheader(":material/groups_2: Register Attendance")
-
-        # show_all = st.toggle(
-        #     "Show all session dates",
-        #     value=False,
-        #     help="Temporarily list all sessions to backfill absences."
-        # )
-
-        # fetch_limit = None if show_all else 6  # None => no cap
-
-        # recent_sessions = mongo.get_recent_sessions(
-        #     team=team,
-        #     limit=fetch_limit,
-        #     up_to_date=date.today()
-        # )
-
-        # # Deduplicate by date (keep the latest per day)
-        # seen_dates = set()
-        # date_to_session = {}
-        # for s in sorted(recent_sessions, key=lambda x: _to_date(x.get("date")), reverse=True):
-        #     d = _to_date(s.get("date"))
-        #     if d not in seen_dates:
-        #         seen_dates.add(d)
-        #         date_to_session[d] = s
-        #     if not show_all and len(date_to_session) >= 6:
-        #         break
-
-        # if not date_to_session:
-        #     st.warning("No usable session dates found.")
-        #     return
-
-        # all_dates_desc = sorted(date_to_session.keys(), reverse=True)
-        # # Default to today if present; otherwise the most recent date
-        # default_idx = 0
-        # if date.today() in date_to_session:
-        #     default_idx = all_dates_desc.index(date.today())
-
-        # date_labels = [_ddmmyyyy(d) for d in all_dates_desc]
-        # selected_label = st.selectbox("Session date (dd/mm/yyyy)", options=date_labels, index=default_idx, width=200)
-        # selected_date = all_dates_desc[date_labels.index(selected_label)]
-        # session = date_to_session[selected_date]
-        # session_id = session.get("session_id")
-
-        # # --- ROSTER -------------------------------------------------------------
-        # try:
-        #     roster = mongo.get_roster_players(team=team)
-        # except Exception as e:
-        #     st.error(f"Unable to load roster: {e}")
-        #     return
-
-        # if not roster:
-        #     st.warning("No players found for this team.")
-        #     return
-
-        # # Normalize and sort players for stable UI
-        # players = []
-        # for p in roster:
-        #     pid = p.get("player_id")
-        #     try:
-        #         pid = int(pid)
-        #     except Exception:
-        #         pass
-        #     name = f"{p.get('player_last_name', p.get('last_name','')).upper()}, {p.get('player_first_name', p.get('first_name',''))}".strip(", ")
-        #     players.append({"player_id": pid, "name": name})
-        # players.sort(key=lambda x: x["name"])
 
         # --- PRESENTS SELECTION (PILLS) -----------------------------------------
         st.subheader(":material/group_add: Mark Presents")
@@ -408,14 +342,24 @@ def render(mongo, user):
     with tab2:
         st.subheader(":material/table_chart: Attendance Overview")
 
-        # Controls (optional): show all dates or cap to last N
-        col_a, col_b = st.columns([1, 1])
-        with col_a:
-            show_all = st.toggle("Show all session dates", value=False)
-        with col_b:
-            last_n = st.number_input("Limit to last N dates (ignored if 'Show all' is on)", min_value=1, max_value=52, value=12, step=1)
+      # Attendance filter: last 7, 14, or all days
+    filter_option = st.selectbox(
+        "Show attendance for:",
+        options=[
+            "Last 7 days",
+            "Last 14 days",
+            "All days"
+        ],
+        width=200,
+        index=0  # default to last 7 days
+    )
 
-        limit = None if show_all else int(last_n)
+    if "7 days" in filter_option:
+        limit = 7
+    elif "14 days" in filter_option:
+        limit = 14
+    else:
+        limit = None  # show all days
 
         try:
             df_overview = build_attendance_overview_df(
@@ -527,4 +471,176 @@ def render(mongo, user):
     with tab4:
         st.subheader(":material/table_chart: Match Minutes Overview")
 
-        st.write("Under construction... coming soon!")  
+        # st.write("Under construction... coming soon!")
+
+        try:
+            # 1) Load players (expects: [{"player_id": int, "display_name": str, ...}, ...])
+            players_raw = mongo.get_player_names(team=team, style="LAST_FIRST")
+            if not players_raw:
+                st.info("No players found for this team.")
+                st.stop()
+
+            players_df = pd.DataFrame(players_raw)
+            # Normalize to a single display column named 'player_name'
+            name_col = "display_name" if "display_name" in players_df.columns else (
+                "name" if "name" in players_df.columns else None
+            )
+            if name_col is None:
+                st.error("get_player_names(...) must return a 'display_name' or 'name' field.")
+                st.stop()
+
+            players_df = players_df[["player_id", name_col]].rename(columns={name_col: "player_name"})
+            # Keep player order as “Last, First” alphabetical
+            players_df = players_df.sort_values(["player_name", "player_id"]).reset_index(drop=True)
+
+            # 2) Load matches (expects: list of dicts with 'session_id' and 'date' at minimum)
+            up_to = date.today()
+
+            if hasattr(mongo, "get_recent_sessions"):
+                matches_raw = mongo.get_recent_sessions(team=team, limit=limit, up_to_date=up_to, session_type="M")
+            else:
+                st.error("Your MongoWrapper needs a get_sessions(team=..., session_type='M') method.")
+                st.stop()
+
+            if not matches_raw:
+                st.info("No match sessions found.")
+                st.stop()
+
+            # Build a dataframe of matches with a nice label per column
+            matches_df = pd.DataFrame(matches_raw)
+
+            # Ensure required fields
+            if "session_id" not in matches_df.columns:
+                st.error("get_sessions(...) must return 'session_id' for matches.")
+                st.stop()
+
+            # Try to parse/format date for clean column labels
+            # Accept 'date' as a datetime/date or an ISO string; otherwise fall back to session_id.
+            def _label_for_match(row):
+                if "date" in row and row["date"]:
+                    try:
+                        dt = row["date"]
+                        if isinstance(dt, str):
+                            # Attempt ISO parse
+                            dt = datetime.fromisoformat(dt).date()
+                        elif isinstance(dt, datetime):
+                            dt = dt.date()
+                        # Label like 2025-09-12
+                        return dt.strftime("%Y-%m-%d")
+                    except Exception:
+                        pass
+                # Fallback label
+                return str(row.get("session_id"))
+
+            matches_df["match_label"] = matches_df.apply(_label_for_match, axis=1)
+
+            # Keep columns ordered by date if available, else by session_id
+            if "date" in matches_df.columns:
+                # Robust sort: coerce to datetime when possible
+                def _to_dt(v):
+                    if isinstance(v, datetime):
+                        return v
+                    if hasattr(v, "isoformat"):  # date
+                        return datetime.combine(v, datetime.min.time())
+                    if isinstance(v, str):
+                        try:
+                            return datetime.fromisoformat(v)
+                        except Exception:
+                            return None
+                    return None
+
+                matches_df["_sortkey"] = matches_df["date"].apply(_to_dt)
+                matches_df = matches_df.sort_values(["_sortkey", "session_id"], na_position="last").drop(columns=["_sortkey"])
+            else:
+                matches_df = matches_df.sort_values("session_id")
+
+            session_id_to_label = dict(zip(matches_df["session_id"], matches_df["match_label"]))
+            ordered_labels = list(matches_df["match_label"])
+
+            # 3) Load match-minutes registrations
+            # Expected structure (one doc per (player_id, session_id) entry):
+            # { session_id: <int/str>, team: "U18"/"U21", player_id: <int>, minutes: <int>, ... }
+            if hasattr(mongo, "get_match_minutes"):
+                minutes_docs = mongo.get_match_minutes(team=team)
+            else:
+                # If you store the data in a collection named 'match_minutes', you can expose a generic wrapper method,
+                # e.g. mongo.find(collection_name, filter). If not present, we fail gracefully with guidance.
+                if hasattr(mongo, "find"):
+                    minutes_docs = mongo.find("match_minutes", {"team": team})
+                else:
+                    st.error(
+                        "Please implement either mongo.get_match_minutes(team=...) or a generic mongo.find('match_minutes', {'team': team})."
+                    )
+                    st.stop()
+
+            if not minutes_docs:
+                st.info("No match minutes have been registered yet.")
+                st.stop()
+
+            minutes_df = pd.DataFrame(minutes_docs)
+
+            # Basic validation and cleanup
+            needed_cols = {"session_id", "player_id", "minutes"}
+            missing = needed_cols - set(minutes_df.columns)
+            if missing:
+                st.error(f"Match minutes data is missing columns: {', '.join(sorted(missing))}")
+                st.stop()
+
+            # Filter to known matches (defensive)
+            minutes_df = minutes_df[minutes_df["session_id"].isin(session_id_to_label.keys())].copy()
+            if minutes_df.empty:
+                st.info("No match minutes for the existing match sessions.")
+                st.stop()
+
+            # 4) Build the pivot matrix: rows=player, cols=match_label, values=minutes
+            minutes_df["match_label"] = minutes_df["session_id"].map(session_id_to_label)
+            matrix_df = (
+                minutes_df[["player_id", "match_label", "minutes"]]
+                .groupby(["player_id", "match_label"], as_index=False)["minutes"]
+                .max()  # max in case of accidental duplicates; change to 'last' if you keep timestamps
+            )
+
+            # Ensure all players show up (even if no minutes recorded yet)
+            matrix_df = players_df[["player_id", "player_name"]].merge(
+                matrix_df, on="player_id", how="left"
+            )
+
+            # Pivot to wide format
+            table = (
+                matrix_df.pivot_table(
+                    index="player_name",
+                    columns="match_label",
+                    values="minutes",
+                    aggfunc="max",
+                )
+                .fillna(0)
+                .astype(int)
+            )
+
+            # Reorder match columns by date-derived order
+            existing_cols = [c for c in ordered_labels if c in table.columns]
+            table = table.reindex(columns=existing_cols)
+
+            # 5) Append totals and averages
+            match_only = table.copy()
+            table["Total minutes"] = match_only.sum(axis=1)
+
+            # Average across matches actually played (>0 minutes)
+            played_counts = (match_only > 0).sum(axis=1)
+            with pd.option_context("mode.use_inf_as_na", True):
+                table["Avg min (played)"] = (match_only.sum(axis=1) / played_counts.replace(0, pd.NA)).round(1)
+
+            # Optional: sort players by total minutes (comment out if not desired)
+            table = table.sort_values(["Total minutes", "player_name"], ascending=[False, True])
+
+            # 6) Display
+            st.caption("Each column is a match; cells show minutes played. "
+                    "**Avg min (played)** averages only over matches where the player had >0 minutes.")
+            st.dataframe(
+                table,
+                use_container_width=True,
+                height=get_table_height(len(table)) if 'get_table_height' in globals() else None
+            )
+
+        except Exception as e:
+            st.error(f"Failed to build match minutes overview: {e}")
