@@ -18,6 +18,10 @@ from typing import List, Dict, Any, Optional, Set, Union
 #from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import PyMongoError
 
+from .errors import DatabaseError, ApplicationError
+from .connection import get_db
+from .repositories.roster_repo import RosterRepository
+
 from utils.constants import NameStyle
 
 class DatabaseError(Exception):
@@ -51,18 +55,10 @@ class MongoWrapper:
     # Database connection
     # --------------------
 
-    def __init__(self, secrets: dict):
-        username = secrets["mongo_username"]
-        password = secrets["mongo_password"]
-        cluster_url = secrets["mongo_cluster_url"]
-        db_name = secrets["database_name"]
-
-        # Construct the connection URI
-        uri = f"mongodb+srv://{username}:{password}@{cluster_url}/?retryWrites=true&w=majority"
-
-        # Connect to the client and database
-        self.client = MongoClient(uri)
-        self.db = self.client[db_name]
+    def __init__(self, secrets: Dict[str, Any]):
+        self.db = get_db(secrets)
+        # compose repos as you add them
+        self.roster_repo = RosterRepository(self.db)
 
     # -----------------------
     # Roster data management
@@ -109,29 +105,6 @@ class MongoWrapper:
             return list(self.db["roster"].find(query))
         except Exception as e:
             raise DatabaseError(f"Failed to fetch roster players: {e}")
-        
-    def _format_player_name(
-        self,
-        doc: Dict[str, Any],
-        style: NameStyle = "LAST_FIRST",
-    ) -> str:
-        """Format a roster doc into a display name.
-
-        Styles:
-            - "LAST_FIRST" (default): "DOE, John"
-            - "First Last": "John Doe"
-            - "LAST FirstInitial.": "DOE J."
-        """
-        first = str(doc.get("player_first_name") or doc.get("first_name") or "").strip()
-        last  = str(doc.get("player_last_name")  or doc.get("last_name")  or "").strip()
-
-        if style == "First Last":
-            return " ".join(p for p in [first, last] if p)
-        if style == "LAST FirstInitial.":
-            fi = f"{first[:1].upper()}." if first else ""
-            return " ".join(p for p in [last.upper(), fi] if p).strip()
-        # default: LAST, First
-        return ", ".join([last.upper(), first]).strip(", ").replace(" ,", ",")
 
     def get_player_names(
         self,
@@ -141,53 +114,24 @@ class MongoWrapper:
         sort_by_name: bool = True,
         fields: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
-        """Return players with normalized ids and display names.
+        """Pass-through to :py:meth:`db.repositories.roster_repo.RosterRepository.get_player_names`.
 
-        Args:
-            team: "U18" | "U21".
-            style: Display style for names.
-            include_inactive: If your roster has an `active` flag, include inactive too.
-            sort_by_name: Sort by the rendered display name.
-            fields: Extra fields to include from roster.
-
-        Returns:
-            [{"player_id": int, "display_name": str, ...}, ...]
+        Notes:
+            This wrapper is kept for backward compatibility while migrating call sites.
+            Prefer using the repository/service directly in new code.
         """
         try:
-            q: Dict[str, Any] = {"team": team}
-            if not include_inactive:
-                q.update({"$or": [{"active": True}, {"active": {"$exists": False}}]})
-
-            projection = {
-                "_id": 0, "player_id": 1,
-                "player_first_name": 1, "player_last_name": 1,
-                "first_name": 1, "last_name": 1,
-            }
-            if fields:
-                for f in fields:
-                    projection[f] = 1
-
-            docs = list(self.db["roster"].find(q, projection))
-
-            out: List[Dict[str, Any]] = []
-            for d in docs:
-                try:
-                    pid = int(d.get("player_id"))
-                except Exception:
-                    continue
-                display_name = self._format_player_name(d, style=style)
-                item = {"player_id": pid, "display_name": display_name}
-                if fields:
-                    for f in fields:
-                        if f in d:
-                            item[f] = d[f]
-                out.append(item)
-
-            if sort_by_name:
-                out.sort(key=lambda x: (x["display_name"], x["player_id"]))
-            return out
+            return self.roster_repo.get_player_names(
+                team=team,
+                style=style,
+                include_inactive=include_inactive,
+                sort_by_name=sort_by_name,
+                fields=fields,
+            )
+        except (DatabaseError, ApplicationError):
+            raise
         except Exception as e:
-            raise DatabaseError(f"Failed to fetch player names: {e}") from e
+            raise ApplicationError(f"mongo_wrapper.get_player_names unexpected error: {e}") from e
         
     # -------------------------
     # PDP structure management
