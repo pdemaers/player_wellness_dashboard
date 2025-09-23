@@ -1,5 +1,6 @@
 # db/repositories/roster_repo.py
 from typing import Any, Dict, List, Optional
+import pandas as pd
 from ..base import BaseRepository
 from ..errors import DatabaseError, ApplicationError
 
@@ -99,3 +100,64 @@ class RosterRepository(BaseRepository):
         except Exception as e:
             # catch-all safety net
             raise ApplicationError(f"Unexpected error in get_player_names: {e}") from e
+        
+    def get_roster_df(self) -> pd.DataFrame:
+        """Return the full roster as a pandas DataFrame (excluding `_id`).
+
+        Returns:
+            pandas.DataFrame: One row per roster document.
+
+        Raises:
+            DatabaseError: If the MongoDB query fails.
+        """
+        try:
+            docs: List[Dict[str, Any]] = self.find_safe({}, {"_id": 0})
+            return pd.DataFrame(docs)
+        except DatabaseError:
+            raise  # bubble DB issues unchanged
+        except Exception as e:
+            # Unexpected non-DB failure (e.g., pandas)
+            raise ApplicationError(f"Unexpected error in get_roster_df: {e}") from e
+
+    def save_roster_df(self, df: pd.DataFrame) -> bool:
+        """Replace the roster collection with the contents of `df`.
+
+        Notes:
+            - This is a destructive replace (delete-all, then insert-all).
+            - Keep this behavior for parity; consider a future upsert strategy if needed.
+
+        Args:
+            df: DataFrame containing roster documents (dict-like rows).
+
+        Returns:
+            True if the operation succeeded.
+
+        Raises:
+            ApplicationError: If `df` is not a DataFrame or rows are invalid.
+            DatabaseError: If MongoDB operations fail.
+        """
+        # --- Application-level validation ---
+        if not isinstance(df, pd.DataFrame):
+            raise ApplicationError("save_roster_df: `df` must be a pandas DataFrame.")
+        # Convert *before* deleting collection, to fail fast on data issues.
+        try:
+            records = df.to_dict("records")  # type: List[Dict[str, Any]]
+        except Exception as e:
+            raise ApplicationError(f"save_roster_df: cannot convert DataFrame to records: {e}") from e
+
+        # Optional safety: prevent accidental wipe if the new data is empty.
+        # Comment this out if you *do* want to allow clearing the roster.
+        if len(records) == 0:
+            raise ApplicationError("save_roster_df: refusing to replace with an empty DataFrame.")
+
+        # --- DB operations ---
+        try:
+            # Destructive replace, matching your current behavior
+            self.col.delete_many({})
+            # ordered=False tolerates a single bad row without aborting the entire batch
+            if records:
+                self.col.insert_many(records, ordered=True)
+            return True
+        except Exception as e:
+            # Any PyMongo error gets wrapped as DatabaseError by convention
+            raise DatabaseError(f"save_roster_df failed: {e}") from e

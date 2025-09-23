@@ -65,38 +65,56 @@ class MongoWrapper:
     # -----------------------
 
     def get_roster_df(self) -> pd.DataFrame:
-        """Return the full roster as a pandas DataFrame.
-
-        Returns:
-            DataFrame: All players with fields `_id` excluded.
-
-        Raises:
-            DatabaseError: If the query fails.
-        """
+        """Pass-through to RosterRepository.get_roster_df()."""
         try:
-            data = list(self.db.roster.find({}, {"_id": 0}))
-            return pd.DataFrame(data)
+            return self.roster_repo.get_roster_df()
+        except (DatabaseError, ApplicationError):
+            raise
         except Exception as e:
-            raise DatabaseError(f"Failed to load roster: {e}")
+            raise ApplicationError(f"mongo_wrapper.get_roster_df unexpected error: {e}") from e
+
+
+        # """Return the full roster as a pandas DataFrame.
+
+        # Returns:
+        #     DataFrame: All players with fields `_id` excluded.
+
+        # Raises:
+        #     DatabaseError: If the query fails.
+        # """
+        # try:
+        #     data = list(self.db.roster.find({}, {"_id": 0}))
+        #     return pd.DataFrame(data)
+        # except Exception as e:
+        #     raise DatabaseError(f"Failed to load roster: {e}")
         
     def save_roster_df(self, df: pd.DataFrame) -> bool:
-        """Replace the roster collection with a new DataFrame.
-
-        Args:
-            df: DataFrame with roster documents.
-
-        Returns:
-            True if the operation succeeded.
-
-        Raises:
-            DatabaseError: On MongoDB error.
-        """
+        """Pass-through to RosterRepository.save_roster_df(df)."""
         try:
-            self.db.roster.delete_many({})
-            self.db.roster.insert_many(df.to_dict("records"))
-            return True
+            return self.roster_repo.save_roster_df(df)
+        except (DatabaseError, ApplicationError):
+            raise
         except Exception as e:
-            raise DatabaseError(f"Failed to save roster: {e}")
+            raise ApplicationError(f"mongo_wrapper.save_roster_df unexpected error: {e}") from e
+
+
+        # """Replace the roster collection with a new DataFrame.
+
+        # Args:
+        #     df: DataFrame with roster documents.
+
+        # Returns:
+        #     True if the operation succeeded.
+
+        # Raises:
+        #     DatabaseError: On MongoDB error.
+        # """
+        # try:
+        #     self.db.roster.delete_many({})
+        #     self.db.roster.insert_many(df.to_dict("records"))
+        #     return True
+        # except Exception as e:
+        #     raise DatabaseError(f"Failed to save roster: {e}")
         
     def get_roster_players(self, team: str = None) -> List[Dict[str, Any]]:
         """Return all players, optionally filtered by team."""
