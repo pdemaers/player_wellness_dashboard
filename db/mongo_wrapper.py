@@ -324,8 +324,19 @@ class MongoWrapper:
             start_ts = datetime.combine(target_date, time.min)
             end_ts = datetime.combine(target_date, time.max)
 
-            roster = self.get_roster_players(team=team)
-            player_ids = [int(p["player_id"]) for p in roster]
+            # Use the standardized name helper; we only need player_id
+            roster = self.roster_repo.get_player_names(
+                team=team,
+                style="LAST_FIRST",
+                include_inactive=True,     # keeps parity with previous behavior
+                sort_by_name=False,        # no need to sort for backend filtering
+                fields=None
+            )
+            player_ids = [int(p["player_id"]) for p in roster if "player_id" in p]
+
+
+            # roster = self.get_roster_players(team=team)
+            # player_ids = [int(p["player_id"]) for p in roster]
 
             return list(self.db["player_wellness"].find({
                 "player_id": {"$in": player_ids},
