@@ -20,5 +20,14 @@ Business logic should live in Services (if present), not here.
         - get_sessions_df
       show_docstring_description: true
 
+## PDP Structures
+::: db.repositories.pdp_repo.PdpRepository
+    options:
+      members:
+        - get_pdp_structure_for_team
+        - update_pdp_structure_for_team
+        - list_all_team_structures
+      show_docstring_description: true
+
 ## Attendance / Match Minutes
 ::: db.repositories.attendance_repo.MatchMinutesRepository

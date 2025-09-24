@@ -22,6 +22,7 @@ from .errors import DatabaseError, ApplicationError
 from .connection import get_db
 from .repositories.roster_repo import RosterRepository
 from .repositories.sessions_repo import SessionsRepository
+from .repositories.pdp_repo import PdpRepository
 
 
 from utils.constants import NameStyle
@@ -62,6 +63,9 @@ class MongoWrapper:
         # compose repos as you add them
         self.roster_repo = RosterRepository(self.db)
         self.sessions_repo = SessionsRepository(self.db)
+        self.pdp_repo = PdpRepository(self.db)
+
+
 
     # -----------------------
     # Roster data management
@@ -83,7 +87,7 @@ class MongoWrapper:
         try:
             if not team:
                 raise ApplicationError("save_roster_df: 'team' is required in the team-scoped workflow.")
-            return self.roster_repo.save_roster_team_df(df=df, team=team)
+            return self.roster_repo.save_roster_df(df=df, team=team)
         except (DatabaseError, ApplicationError):
             raise
         except Exception as e:
@@ -121,7 +125,7 @@ class MongoWrapper:
 
 
     # -------------------------    
-    # Sessions data management
+    # Session data management
     # -------------------------
 
     def add_session(self, session_data: dict) -> bool:
@@ -151,46 +155,71 @@ class MongoWrapper:
     # -------------------------
 
     def get_pdp_structure_for_team(self, team: str) -> dict:
-        """Fetch the PDP structure for a given team.
-
-        Args:
-            team: Team code (e.g. "U21").
-
-        Returns:
-            dict: The PDP structure document, or None if not found.
-        """
         try:
-            return self.db["pdp_structure"].find_one({"_id": f"{team}_structure"})
+            return self.pdp_repo.get_pdp_structure_for_team(team=team)
+        except (DatabaseError, ApplicationError):
+            raise
         except Exception as e:
-            raise DatabaseError(f"Failed to load PDP structure for {team}: {e}")
+            raise ApplicationError(f"mongo_wrapper.get_pdp_structure_for_team unexpected error: {e}") from e
+
+
+
+        # """Fetch the PDP structure for a given team.
+
+        # Args:
+        #     team: Team code (e.g. "U21").
+
+        # Returns:
+        #     dict: The PDP structure document, or None if not found.
+        # """
+        # try:
+        #     return self.db["pdp_structure"].find_one({"_id": f"{team}_structure"})
+        # except Exception as e:
+        #     raise DatabaseError(f"Failed to load PDP structure for {team}: {e}")
 
     def update_pdp_structure_for_team(self, team: str, updated_doc: dict) -> bool:
-        """Save or update the PDP structure for a team.
-
-        Args:
-            team: Team code.
-            updated_doc: Updated PDP structure document.
-
-        Returns:
-            True if the document was updated or inserted.
-        """
         try:
-            updated_doc["_id"] = f"{team}_structure"
-            result = self.db["pdp_structure"].replace_one(
-            {"_id": updated_doc["_id"]},
-            updated_doc,
-            upsert=True
-            )
-            return result.modified_count > 0 or result.upserted_id is not None
+            return self.pdp_repo.update_pdp_structure_for_team(team=team, updated_doc=updated_doc)
+        except (DatabaseError, ApplicationError):
+            raise
         except Exception as e:
-            raise DatabaseError(f"Failed to update PDP structure for {team}: {e}")
+            raise ApplicationError(f"mongo_wrapper.update_pdp_structure_for_team unexpected error: {e}") from e
+        
+        # """Save or update the PDP structure for a team.
 
-    def list_all_team_structures(self) -> list:
-        """List all available team-specific PDP structure IDs."""
+        # Args:
+        #     team: Team code.
+        #     updated_doc: Updated PDP structure document.
+
+        # Returns:
+        #     True if the document was updated or inserted.
+        # """
+        # try:
+        #     updated_doc["_id"] = f"{team}_structure"
+        #     result = self.db["pdp_structure"].replace_one(
+        #     {"_id": updated_doc["_id"]},
+        #     updated_doc,
+        #     upsert=True
+        #     )
+        #     return result.modified_count > 0 or result.upserted_id is not None
+        # except Exception as e:
+        #     raise DatabaseError(f"Failed to update PDP structure for {team}: {e}")
+
+    def list_all_team_structures(self) -> list[str]:
         try:
-            return [doc["_id"] for doc in self.db["pdp_structure"].find({}, {"_id": 1})]
+            return self.pdp_repo.list_all_team_structures()
+        except (DatabaseError, ApplicationError):
+            raise
         except Exception as e:
-            raise DatabaseError(f"Failed to list PDP structures: {e}")
+            raise ApplicationError(f"mongo_wrapper.list_all_team_structures unexpected error: {e}") from e
+
+
+
+        # """List all available team-specific PDP structure IDs."""
+        # try:
+        #     return [doc["_id"] for doc in self.db["pdp_structure"].find({}, {"_id": 1})]
+        # except Exception as e:
+        #     raise DatabaseError(f"Failed to list PDP structures: {e}")
 
 
 
