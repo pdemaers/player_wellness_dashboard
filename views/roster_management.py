@@ -140,11 +140,11 @@ def render(mongo: Any, user: Optional[dict[str, Any]]) -> None:
                     st.stop()
 
                 # ---- Team-scoped replace ----
-                ok = mongo.save_roster_df(to_save, team=team)   # keyword arg avoids ordering issues
+                ok = mongo.save_roster_df(to_save, team=team)
                 if ok:
                     st.success(f"Roster for {team} updated.", icon=":material/check_box:")
                 else:
-                    st.error("Failed to save roster.", icon=":material/error_outline:")
+                    st.error("Failed to save roster.", icon=":material/error_outlin:")
 
             except DatabaseError as e:
                 st.error(str(e))
