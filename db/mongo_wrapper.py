@@ -116,13 +116,13 @@ class MongoWrapper:
         # except Exception as e:
         #     raise DatabaseError(f"Failed to save roster: {e}")
         
-    def get_roster_players(self, team: str = None) -> List[Dict[str, Any]]:
-        """Return all players, optionally filtered by team."""
-        try:
-            query = {"team": team} if team else {}
-            return list(self.db["roster"].find(query))
-        except Exception as e:
-            raise DatabaseError(f"Failed to fetch roster players: {e}")
+    # def get_roster_players(self, team: str = None) -> List[Dict[str, Any]]:
+    #     """Return all players, optionally filtered by team."""
+    #     try:
+    #         query = {"team": team} if team else {}
+    #         return list(self.db["roster"].find(query))
+    #     except Exception as e:
+    #         raise DatabaseError(f"Failed to fetch roster players: {e}")
 
     def get_player_names(
         self,
