@@ -10,6 +10,8 @@ class RosterRepository(BaseRepository):
     def __init__(self, db):
         super().__init__(db, "roster")
 
+
+
     def _format_player_name(
         self,
         doc: Dict[str, Any],
@@ -32,6 +34,8 @@ class RosterRepository(BaseRepository):
             return " ".join(p for p in [last.upper(), fi] if p).strip()
         # default: LAST, First
         return ", ".join([last.upper(), first]).strip(", ").replace(" ,", ",")
+
+
 
     def get_player_names(
         self,
@@ -100,9 +104,11 @@ class RosterRepository(BaseRepository):
         except Exception as e:
             # catch-all safety net
             raise ApplicationError(f"Unexpected error in get_player_names: {e}") from e
-        
-    def get_roster_df(self) -> pd.DataFrame:
-        """Return the full roster as a pandas DataFrame (excluding `_id`).
+
+
+
+    def get_roster_df(self, team: Optional[str] = None) -> pd.DataFrame:
+        """Return the roster as a pandas DataFrame (excluding `_id`). Optionally filter by team.
 
         Returns:
             pandas.DataFrame: One row per roster document.
@@ -111,20 +117,24 @@ class RosterRepository(BaseRepository):
             DatabaseError: If the MongoDB query fails.
         """
         try:
-            docs: List[Dict[str, Any]] = self.find_safe({}, {"_id": 0})
+            filt: Dict[str, Any] = {}
+            if team:
+                filt["team"] = team
+            docs = self.find_safe(filt, {"_id": 0})
             return pd.DataFrame(docs)
         except DatabaseError:
-            raise  # bubble DB issues unchanged
+            raise
         except Exception as e:
-            # Unexpected non-DB failure (e.g., pandas)
             raise ApplicationError(f"Unexpected error in get_roster_df: {e}") from e
 
-    def save_roster_df(self, df: pd.DataFrame) -> bool:
-        """Replace the roster collection with the contents of `df`.
+
+
+    def save_roster_df(self, *, team: str, df: pd.DataFrame) -> bool:
+        """Replace the roster for a single team with `df` rows.
 
         Notes:
-            - This is a destructive replace (delete-all, then insert-all).
-            - Keep this behavior for parity; consider a future upsert strategy if needed.
+            - Destructive for that team only: delete_many({'team': team}) then insert.
+            - Ensures every row has the correct `team` value.
 
         Args:
             df: DataFrame containing roster documents (dict-like rows).
@@ -145,6 +155,10 @@ class RosterRepository(BaseRepository):
         except Exception as e:
             raise ApplicationError(f"save_roster_df: cannot convert DataFrame to records: {e}") from e
 
+        # Enforce team on all rows
+        for r in records:
+            r["team"] = team
+        
         # Optional safety: prevent accidental wipe if the new data is empty.
         # Comment this out if you *do* want to allow clearing the roster.
         if len(records) == 0:
@@ -152,12 +166,9 @@ class RosterRepository(BaseRepository):
 
         # --- DB operations ---
         try:
-            # Destructive replace, matching your current behavior
-            self.col.delete_many({})
-            # ordered=False tolerates a single bad row without aborting the entire batch
-            if records:
-                self.col.insert_many(records, ordered=True)
+            # Replace only this team's roster
+            self.col.delete_many({"team": team})
+            self.col.insert_many(records, ordered=True)
             return True
         except Exception as e:
-            # Any PyMongo error gets wrapped as DatabaseError by convention
-            raise DatabaseError(f"save_roster_df failed: {e}") from e
+            raise DatabaseError(f"save_roster_team_df failed: {e}") from e
