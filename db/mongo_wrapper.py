@@ -21,6 +21,8 @@ from pymongo.errors import PyMongoError
 from .errors import DatabaseError, ApplicationError
 from .connection import get_db
 from .repositories.roster_repo import RosterRepository
+from .repositories.sessions_repo import SessionsRepository
+
 
 from utils.constants import NameStyle
 
@@ -59,70 +61,35 @@ class MongoWrapper:
         self.db = get_db(secrets)
         # compose repos as you add them
         self.roster_repo = RosterRepository(self.db)
+        self.sessions_repo = SessionsRepository(self.db)
 
     # -----------------------
     # Roster data management
     # -----------------------
 
-    def get_roster_df(self) -> pd.DataFrame:
+    def get_roster_df(self, team: Optional[str] = None) -> pd.DataFrame:
         """Pass-through to RosterRepository.get_roster_df()."""
         try:
-            return self.roster_repo.get_roster_df()
+            return self.roster_repo.get_roster_df(team=team)
         except (DatabaseError, ApplicationError):
             raise
         except Exception as e:
             raise ApplicationError(f"mongo_wrapper.get_roster_df unexpected error: {e}") from e
 
 
-        # """Return the full roster as a pandas DataFrame.
-
-        # Returns:
-        #     DataFrame: All players with fields `_id` excluded.
-
-        # Raises:
-        #     DatabaseError: If the query fails.
-        # """
-        # try:
-        #     data = list(self.db.roster.find({}, {"_id": 0}))
-        #     return pd.DataFrame(data)
-        # except Exception as e:
-        #     raise DatabaseError(f"Failed to load roster: {e}")
         
-    def save_roster_df(self, df: pd.DataFrame) -> bool:
-        """Pass-through to RosterRepository.save_roster_df(df)."""
+    def save_roster_df(self, df: pd.DataFrame, *, team: str) -> bool:
+        """Replace ONLY the selected team's roster with df."""
         try:
-            return self.roster_repo.save_roster_df(df)
+            if not team:
+                raise ApplicationError("save_roster_df: 'team' is required in the team-scoped workflow.")
+            return self.roster_repo.save_roster_team_df(df=df, team=team)
         except (DatabaseError, ApplicationError):
             raise
         except Exception as e:
             raise ApplicationError(f"mongo_wrapper.save_roster_df unexpected error: {e}") from e
 
 
-        # """Replace the roster collection with a new DataFrame.
-
-        # Args:
-        #     df: DataFrame with roster documents.
-
-        # Returns:
-        #     True if the operation succeeded.
-
-        # Raises:
-        #     DatabaseError: On MongoDB error.
-        # """
-        # try:
-        #     self.db.roster.delete_many({})
-        #     self.db.roster.insert_many(df.to_dict("records"))
-        #     return True
-        # except Exception as e:
-        #     raise DatabaseError(f"Failed to save roster: {e}")
-        
-    # def get_roster_players(self, team: str = None) -> List[Dict[str, Any]]:
-    #     """Return all players, optionally filtered by team."""
-    #     try:
-    #         query = {"team": team} if team else {}
-    #         return list(self.db["roster"].find(query))
-    #     except Exception as e:
-    #         raise DatabaseError(f"Failed to fetch roster players: {e}")
 
     def get_player_names(
         self,
@@ -150,7 +117,35 @@ class MongoWrapper:
             raise
         except Exception as e:
             raise ApplicationError(f"mongo_wrapper.get_player_names unexpected error: {e}") from e
-        
+
+
+
+    # -------------------------    
+    # Sessions data management
+    # -------------------------
+
+    def add_session(self, session_data: dict) -> bool:
+        """Pass-through to SessionsRepository.add_session."""
+        try:
+            return self.sessions_repo.add_session(session_data=session_data)
+        except (DatabaseError, ApplicationError):
+            raise
+        except Exception as e:
+            raise ApplicationError(f"mongo_wrapper.add_session unexpected error: {e}") from e
+    
+
+
+    def get_sessions_df(self, team: Optional[str] = None) -> pd.DataFrame:
+        """Pass-through to SessionsRepository.get_sessions_df (team-only filter to match old behavior)."""
+        try:
+            return self.sessions_repo.get_sessions_df(team=team)
+        except (DatabaseError, ApplicationError):
+            raise
+        except Exception as e:
+            raise ApplicationError(f"mongo_wrapper.get_sessions_df unexpected error: {e}") from e
+
+
+
     # -------------------------
     # PDP structure management
     # -------------------------
@@ -197,49 +192,7 @@ class MongoWrapper:
         except Exception as e:
             raise DatabaseError(f"Failed to list PDP structures: {e}")
 
-    # -------------------------    
-    # Sessions data management
-    # -------------------------
 
-    def add_session(self, session_data: dict) -> bool:
-        """Insert a new training session or match.
-
-        Args:
-            session_data: Dict with at least `date`, `team`, `session_type`, `duration`.
-
-        Returns:
-            True if insertion succeeded.
-
-        Raises:
-            DatabaseError: On MongoDB error.
-
-        Notes:
-            - `session_id` is generated as YYYYMMDD + team.
-            - `weeknumber` is derived from ISO week of `date`.
-        """
-        try:
-            # Ensure datetime format for MongoDB
-            raw_date = session_data["date"]
-            dt = raw_date if isinstance(raw_date, datetime) else datetime.combine(raw_date, datetime.min.time())
-            session_data["date"] = dt
-
-            # Compute additional fields
-            session_data["weeknumber"] = dt.isocalendar().week
-            session_data["session_id"] = dt.strftime("%Y%m%d") + session_data["team"]
-
-            self.db.sessions.insert_one(session_data)
-            return True
-        except Exception as e:
-            raise DatabaseError(f"Failed to save session: {e}")
-
-    def get_sessions_df(self, team: str | None = None) -> pd.DataFrame:
-        """Return all sessions, optionally filtered by team."""
-        try:
-            query = {"team": team} if team else {}
-            docs = list(self.db.sessions.find(query, {"_id": 0}))
-            return pd.DataFrame(docs)
-        except Exception as e:
-            raise DatabaseError(f"Failed to load sessions: {e}")
 
     # -------------------    
     # Wellness dashboard
