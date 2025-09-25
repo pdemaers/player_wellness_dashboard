@@ -20,13 +20,22 @@ Business logic should live in Services (if present), not here.
         - get_sessions_df
       show_docstring_description: true
 
-## PDP Structures
+## PDP Structure
 ::: db.repositories.pdp_repo.PdpRepository
     options:
       members:
         - get_pdp_structure_for_team
         - update_pdp_structure_for_team
         - list_all_team_structures
+      show_docstring_description: true
+
+## Player PDP
+::: db.repositories.player_pdp_repo.PlayerPdpRepository
+    options:
+      members:
+        - get_latest_pdp_for_player
+        - get_all_pdps_for_player
+        - insert_new_pdp
       show_docstring_description: true
 
 ## Attendance / Match Minutes

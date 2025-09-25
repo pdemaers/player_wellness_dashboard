@@ -9,12 +9,20 @@ def render(mongo, user):
     st.title(":material/portrait: Create New Player PDP")
 
     # --- Load roster ---
-    roster = mongo.get_roster_players("U18")
+    roster = mongo.get_player_names(team="U18", style="LAST_FIRST", include_inactive=True)
     if not roster:
         st.warning("No players found in roster.")
         return
 
-    player_lookup = {f"{p['player_last_name']}, {p['player_first_name']}": p for p in roster}
+    player_lookup = {p["display_name"]: p for p in roster}
+
+    # # --- Load roster ---
+    # roster = mongo.get_roster_players("U18")
+    # if not roster:
+    #     st.warning("No players found in roster.")
+    #     return
+
+    # player_lookup = {f"{p['player_last_name']}, {p['player_first_name']}": p for p in roster}
     # selected_name = st.selectbox("Select a player", list(player_lookup.keys()))
     # player = player_lookup[selected_name]
     # player_id = player["player_id"]
@@ -128,18 +136,18 @@ def render(mongo, user):
                         }
 
         # --- Save PDP ---
-        submitted = st.form_submit_button("Save PDP")
+        submitted = st.form_submit_button(":material/save: Save PDP")
         if submitted:
-            now = datetime.now().isoformat()
+            now = datetime.datetime.utcnow()
             new_pdp = {
                 "player_id": player_id,
                 "team": team,
-                "created": now,
+                "created_at": now,
                 "last_updated": now,
                 "created_by": user,
                 "last_updated_by": user,
-                "data": form_data
+                "payload": form_data
             }
             mongo.insert_new_pdp(new_pdp)
-            st.success("✅ PDP saved successfully.")
+            st.success("PDP saved successfully.", icon=":material/check_circle:")
             st.session_state["pdp_form_data"] = form_data

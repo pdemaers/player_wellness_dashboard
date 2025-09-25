@@ -23,6 +23,7 @@ from .connection import get_db
 from .repositories.roster_repo import RosterRepository
 from .repositories.sessions_repo import SessionsRepository
 from .repositories.pdp_repo import PdpRepository
+from .repositories.player_pdp_repo import PlayerPdpRepository
 
 
 from utils.constants import NameStyle
@@ -64,6 +65,7 @@ class MongoWrapper:
         self.roster_repo = RosterRepository(self.db)
         self.sessions_repo = SessionsRepository(self.db)
         self.pdp_repo = PdpRepository(self.db)
+        self.player_pdp_repo = PlayerPdpRepository(self.db)
 
 
 
@@ -164,18 +166,6 @@ class MongoWrapper:
 
 
 
-        # """Fetch the PDP structure for a given team.
-
-        # Args:
-        #     team: Team code (e.g. "U21").
-
-        # Returns:
-        #     dict: The PDP structure document, or None if not found.
-        # """
-        # try:
-        #     return self.db["pdp_structure"].find_one({"_id": f"{team}_structure"})
-        # except Exception as e:
-        #     raise DatabaseError(f"Failed to load PDP structure for {team}: {e}")
 
     def update_pdp_structure_for_team(self, team: str, updated_doc: dict) -> bool:
         try:
@@ -185,25 +175,7 @@ class MongoWrapper:
         except Exception as e:
             raise ApplicationError(f"mongo_wrapper.update_pdp_structure_for_team unexpected error: {e}") from e
         
-        # """Save or update the PDP structure for a team.
 
-        # Args:
-        #     team: Team code.
-        #     updated_doc: Updated PDP structure document.
-
-        # Returns:
-        #     True if the document was updated or inserted.
-        # """
-        # try:
-        #     updated_doc["_id"] = f"{team}_structure"
-        #     result = self.db["pdp_structure"].replace_one(
-        #     {"_id": updated_doc["_id"]},
-        #     updated_doc,
-        #     upsert=True
-        #     )
-        #     return result.modified_count > 0 or result.upserted_id is not None
-        # except Exception as e:
-        #     raise DatabaseError(f"Failed to update PDP structure for {team}: {e}")
 
     def list_all_team_structures(self) -> list[str]:
         try:
@@ -213,13 +185,6 @@ class MongoWrapper:
         except Exception as e:
             raise ApplicationError(f"mongo_wrapper.list_all_team_structures unexpected error: {e}") from e
 
-
-
-        # """List all available team-specific PDP structure IDs."""
-        # try:
-        #     return [doc["_id"] for doc in self.db["pdp_structure"].find({}, {"_id": 1})]
-        # except Exception as e:
-        #     raise DatabaseError(f"Failed to list PDP structures: {e}")
 
 
 
@@ -692,32 +657,52 @@ class MongoWrapper:
     # ---------------------
 
     def get_latest_pdp_for_player(self, player_id):
-        """Get the most recent PDP for a given player."""
         try:
-            return self.db["player_pdp"].find_one(
-                {"player_id": player_id},
-                sort=[("last_updated", -1)]
-            )
+            return self.player_pdp_repo.get_latest_pdp_for_player(player_id=player_id)
+        except (DatabaseError, ApplicationError):
+            raise
         except Exception as e:
-            raise DatabaseError(f"Failed to fetch latest PDP for player {player_id}: {e}")
+            raise ApplicationError(f"mongo_wrapper.get_latest_pdp_for_player unexpected error: {e}") from e
 
-    def insert_new_pdp(self, pdp_data):
-        """Insert a new PDP document into the collection."""
-        try:
-            return self.db["player_pdp"].insert_one(pdp_data).inserted_id
-        except Exception as e:
-            raise DatabaseError(f"Failed to insert new PDP: {e}")
+        # """Get the most recent PDP for a given player."""
+        # try:
+        #     return self.db["player_pdp"].find_one(
+        #         {"player_id": player_id},
+        #         sort=[("last_updated", -1)]
+        #     )
+        # except Exception as e:
+        #     raise DatabaseError(f"Failed to fetch latest PDP for player {player_id}: {e}")
 
-    def get_all_pdps_for_player(self, player_id: str):
-        """
-        Returns all PDP documents for a given player_id, sorted by creation time (descending).
-        """
+    def insert_new_pdp(self, pdp_data: dict):
         try:
-            collection = self.db["player_pdp"]
-            results = list(collection.find({"player_id": player_id}))
-            return results
+            return self.player_pdp_repo.insert_new_pdp(pdp_data=pdp_data)
+        except (DatabaseError, ApplicationError):
+            raise
         except Exception as e:
-            raise DatabaseError(f"Failed to fetch all PDPs for player {player_id}: {e}")
+            raise ApplicationError(f"mongo_wrapper.insert_new_pdp unexpected error: {e}") from e
+
+        # """Insert a new PDP document into the collection."""
+        # try:
+        #     return self.db["player_pdp"].insert_one(pdp_data).inserted_id
+        # except Exception as e:
+        #     raise DatabaseError(f"Failed to insert new PDP: {e}")
+
+    def get_all_pdps_for_player(self, player_id: int):
+        try:
+            return self.player_pdp_repo.get_all_pdps_for_player(player_id=player_id)
+        except (DatabaseError, ApplicationError):
+            raise
+        except Exception as e:
+            raise ApplicationError(f"mongo_wrapper.get_all_pdps_for_player unexpected error: {e}") from e
+
+
+        #"""Returns all PDP documents for a given player_id, sorted by creation time (descending)."""
+        # try:
+        #     collection = self.db["player_pdp"]
+        #     results = list(collection.find({"player_id": player_id}))
+        #     return results
+        # except Exception as e:
+        #     raise DatabaseError(f"Failed to fetch all PDPs for player {player_id}: {e}")
 
     # -----------------------------
     # Session attendance functions
