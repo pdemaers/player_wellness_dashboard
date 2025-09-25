@@ -8,8 +8,9 @@ Collections assumed:
 """
 
 from __future__ import annotations
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from datetime import date as date_cls
+from datetime import datetime, timedelta    
 import pandas as pd
 from pymongo.errors import PyMongoError
 from db.errors import DatabaseError  # your central error type
@@ -41,6 +42,7 @@ def _date_bounds(
     return start, end
 
 
+
 def get_session_rpe_aggregates_df(mongo, team: str) -> pd.DataFrame:
     """
     Use your existing MongoWrapper method to fetch weekly/session-type aggregates.
@@ -59,6 +61,7 @@ def get_session_rpe_aggregates_df(mongo, team: str) -> pd.DataFrame:
         return df
     except Exception as e:
         raise DatabaseError(f"Failed to fetch session aggregates: {e}") from e
+
 
 
 def get_rpe_joined_per_session_df(
