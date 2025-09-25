@@ -58,7 +58,7 @@ def render(mongo, user):
         return
 
     # ---- Charts: Boxplot (new) --------------------------------------------
-    st.subheader(":material/stacked_bar_chart: RPE Distribution per Session")
+    #st.subheader(":material/stacked_bar_chart: RPE Distribution per Session")
     if rpe_df.empty:
         st.info("No per-session RPE data for the selected filters.")
     else:
@@ -68,7 +68,7 @@ def render(mongo, user):
         )
 
     # ---- Charts: your existing KPIs ---------------------------------------
-    st.subheader(":material/bar_chart: Average Load per Session Type")
+    #st.subheader(":material/bar_chart: Average Load per Session Type")
     if agg_df.empty:
         st.info("No aggregate data found.")
         return
@@ -78,13 +78,13 @@ def render(mongo, user):
         use_container_width=True
     )
 
-    st.subheader(":material/stacked_bar_chart: Load Distribution by Session Type (per Week)")
+    #st.subheader(":material/stacked_bar_chart: Load Distribution by Session Type (per Week)")
     st.plotly_chart(
         stacked_load_per_week(agg_df, title="Load Distribution by Session Type (per Week)"),
         use_container_width=True
     )
 
-    st.subheader(":material/percent: Relative Load Distribution by Session Type per Week (100% Stacked)")
+    #st.subheader(":material/percent: Relative Load Distribution by Session Type per Week (100% Stacked)")
     st.plotly_chart(
         stacked_pct_load_per_week(agg_df, title="Relative Load Distribution by Session Type per Week (100% Stacked)"),
         use_container_width=True
