@@ -20,6 +20,16 @@ Business logic should live in Services (if present), not here.
         - get_sessions_df
       show_docstring_description: true
 
+## Session Dashboard Repository
+
+::: db.repositories.session_dashboard_repo
+    options:
+      show_root_heading: true
+      show_source: true
+      members_order: source
+      filters:
+        - "!^_"
+
 ## PDP Structure
 ::: db.repositories.pdp_repo.PdpRepository
     options:
