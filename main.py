@@ -16,6 +16,7 @@ from views import (
     pdp_library, 
     attendance_management,
     injury_management,
+    injury_overview,
     rpe_data_quality
 )
 
@@ -32,6 +33,7 @@ PAGES = {
     "PDP Library":       lambda mongo, user: pdp_library.render(mongo, user=user),
     "Attendance":        lambda mongo, user: attendance_management.render(mongo, user=user),
     "Injury Management": lambda mongo, user: injury_management.render(mongo, user=user),
+    "Injury Overview":   lambda mongo, user: injury_overview.render(mongo, user=user),  
     "RPE data quality":  lambda mongo, user: rpe_data_quality.render(mongo, user=user),
 }
 
