@@ -1,6 +1,8 @@
+# db/errors.py
 class DatabaseError(Exception):
-    """Errors raised when MongoDB operations fail."""
-
+    """Base exception for database operations."""
+    pass
 
 class ApplicationError(Exception):
-    """Errors raised in our own application logic (not DB-related)."""
+    """Base exception for database operations."""
+    pass

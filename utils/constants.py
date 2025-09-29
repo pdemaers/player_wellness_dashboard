@@ -65,6 +65,7 @@ PAGE_ICONS = {
     "PDP Library": "archive",
     "Attendance": "person-check",
     "Injury Management": "hospital",
+    "Injury Overview": "list-check",
     "RPE data quality": "database-fill-exclamation"
 }
 
@@ -72,8 +73,8 @@ ROLE_ALLOWED_PAGES = {
     "admin": [
         "Roster Management", "Session Management", "PDP Structure",
         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
-        "Create PDP", "PDP Library", "Attendance", "Injury Management", 
-        "RPE data quality"
+        "Create PDP", "PDP Library", "Attendance", "Injury Management",
+        "Injury Overview", "RPE data quality"
     ],
     "coach": [
         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
@@ -93,3 +94,13 @@ NameStyle = Literal[
 
 IMAGERY_TYPES = ["", "MRI", "Echo", "X-ray"]
 INJURY_DURATION_UNITS = ["Day(s)", "Week(s)", "Month(s)"]
+
+INJURY_STATUS = [
+    "Rest",
+    "Symptom-Limited Activity",
+    "Light Aerobic Activity",
+    "Sport-Specific Exercise (non-contact)",
+    "Non-Contact Training Drills & Resistance Training",
+    "Full Contact Practice and Training",
+    "Return To Game Play",
+]

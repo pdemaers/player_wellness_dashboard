@@ -20,7 +20,7 @@ import pandas as pd
 
 from utils.ui_utils import get_table_height
 
-from utils.constants import TEAMS, IMAGERY_TYPES, INJURY_DURATION_UNITS
+from utils.constants import TEAMS, IMAGERY_TYPES, INJURY_DURATION_UNITS, INJURY_STATUS
 
 # --- Module helpers ------------------------------------------------------------
 
@@ -142,6 +142,7 @@ def render(mongo, user):
 
             details = {
                 "Date": selected_injury.get("injury_date"),
+                "Current Status": selected_injury.get("current_status"),   # <- new
                 "Description": selected_injury.get("description"),
                 "Diagnostic": selected_injury.get("diagnostic"),
                 "Doctor Visit": selected_injury.get("doctor_visit_date"),
@@ -151,63 +152,117 @@ def render(mongo, user):
                 "Comments": comments_str if comments_str else "—",
             }
 
-            # Show fields two per row
-            items = list(details.items())
-            for i in range(0, len(items), 2):
-                cols = st.columns(2)
-                for j, (label, value) in enumerate(items[i:i+2]):
-                    with cols[j]:
-                        st.markdown(f"**{label}:** {value if value not in (None, '', []) else '—'}")
+ 
+            # Show fields two per row in a container
+            with st.container(border=True):
+                items = list(details.items())
+                for i in range(0, len(items), 2):
+                    cols = st.columns(2)
+                    for j, (label, value) in enumerate(items[i:i+2]):
+                        with cols[j]:
+                            st.markdown(f"**{label}:** {value if value not in (None, '', []) else '—'}")
 
-            # Optional: show previous treatment sessions (if you store them)
-            prior_sessions = selected_injury.get("treatment_sessions", [])
-            if prior_sessions:
-                st.subheader(":material/history: Previous Treatment Sessions")
-                # newest first if session_date present
-                try:
-                    prior_sessions = sorted(
-                        prior_sessions, key=lambda x: x.get("session_date", ""), reverse=True
-                    )
-                except Exception:
-                    pass
-                for s in prior_sessions:
-                    sd = s.get("session_date", "—")
-                    author = s.get("created_by", "—")
-                    txt = s.get("comment", "—")
-                    with st.expander(f"{sd} — {author}"):
-                        st.markdown(txt)
-
-            st.markdown("---")
+                # Optional: show previous treatment sessions (if you store them)
+                prior_sessions = selected_injury.get("treatment_sessions", [])
+                if prior_sessions:
+                    st.subheader(":material/history: Previous Treatment Sessions")
+                    # newest first if session_date present
+                    try:
+                        prior_sessions = sorted(
+                            prior_sessions, key=lambda x: x.get("session_date", ""), reverse=True
+                        )
+                    except Exception:
+                        pass
+                    for s in prior_sessions:
+                        sd = s.get("session_date", "—")
+                        author = s.get("created_by", "—")
+                        txt = s.get("comment", "—")
+                        with st.expander(f"{sd} — {author}"):
+                            st.markdown(txt)
 
             # --- Add new treatment session/comment -------------------------------
             st.subheader(":material/healing: Add Treatment Session")
-            with st.form("add_treatment_session", clear_on_submit=True):
-                session_date = st.date_input("Treatment Session Date", value=date.today())
-                session_comment = st.text_area(
-                    "Session Comments",
+            with st.form("add_treatment_session_form", clear_on_submit=True):
+
+                # Two columns: date (left) + current status (right)
+                c1, c2 = st.columns(2)
+                with c1:
+                    treatment_session_date = st.date_input("Treatment Session Date", value=date.today())
+
+                with c2:
+                    # Preselect current status if present on the injury, else the first option
+                    _current = selected_injury.get("current_status")
+                    if _current in INJURY_STATUS:
+                        _idx = INJURY_STATUS.index(_current)
+                    else:
+                        _idx = 0
+                    current_injury_status = st.selectbox("Current Injury Status", INJURY_STATUS, index=_idx)
+
+                treatment_session_comment = st.text_area(
+                    "Treatment Session Comments",
                     placeholder="Treatment details, response, next steps…",
-                    height=140
+                    height=140,
                 )
+
                 submitted = st.form_submit_button(":material/save: Add Treatment Session", type="primary")
 
                 if submitted:
-                    if not str(session_comment).strip():
+                    if not str(treatment_session_comment).strip():
                         st.warning("Please enter a session comment.", icon=":material/warning:")
                     else:
                         treatment_session = {
-                            "session_date": session_date.isoformat(),
-                            "comment": session_comment.strip(),
-                            "created_by": user,                # keep your existing 'user' variable
-                            "created_at": datetime.utcnow(),   # UTC timestamp
+                            "session_date": treatment_session_date.isoformat(),
+                            "comment": treatment_session_comment.strip(),
+                            "status_after": current_injury_status,   # keep an audit of status progression
+                            "created_by": user,
+                            "created_at": datetime.utcnow(),         # UTC timestamp
                         }
 
-                        # Add treatment session to the injury document
+                        # Add treatment session and update current status + audit fields
                         mongo.db["player_injuries"].update_one(
                             {"_id": selected_injury["_id"]},
                             {
                                 "$push": {"treatment_sessions": treatment_session},
-                                "$set": {"updated_by": user, "updated_at": datetime.utcnow()}
-                            }
+                                "$set": {
+                                    "current_status": current_injury_status,
+                                    "updated_by": user,
+                                    "updated_at": datetime.utcnow(),
+                                },
+                            },
                         )
                         st.success("Treatment session added.", icon=":material/check_circle:")
                         st.rerun()  # refresh to show the new session immediately
+
+
+
+            # st.subheader(":material/healing: Add Treatment Session")
+            # with st.form("add_treatment_session", clear_on_submit=True):
+            #     session_date = st.date_input("Treatment Session Date", value=date.today())
+            #     session_comment = st.text_area(
+            #         "Session Comments",
+            #         placeholder="Treatment details, response, next steps…",
+            #         height=140
+            #     )
+            #     submitted = st.form_submit_button(":material/save: Add Treatment Session", type="primary")
+
+            #     if submitted:
+            #         if not str(session_comment).strip():
+            #             st.warning("Please enter a session comment.", icon=":material/warning:")
+            #         else:
+            #             treatment_session = {
+            #                 "session_date": session_date.isoformat(),
+            #                 "comment": session_comment.strip(),
+            #                 "created_by": user,                # keep your existing 'user' variable
+            #                 "created_at": datetime.utcnow(),   # UTC timestamp
+            #             }
+
+            #             # Add treatment session to the injury document
+            #             mongo.db["player_injuries"].update_one(
+            #                 {"_id": selected_injury["_id"]},
+            #                 {
+            #                     "$push": {"treatment_sessions": treatment_session},
+            #                     "$set": {"updated_by": user, "updated_at": datetime.utcnow()}
+            #                 }
+            #             )
+            #             st.success("Treatment session added.", icon=":material/check_circle:")
+            #             st.rerun()  # refresh to show the new session immediately
