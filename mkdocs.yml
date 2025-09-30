@@ -62,6 +62,7 @@ nav:
       - Wellness Dashboard: dashboards/wellness_dashboard.md
       - RPE Dashboard: dashboards/rpe_dashboard.md
       - Session Dashboard: dashboards/session_dashboard.md
+      - Injury Overview: dashboards/injury_overview.md
   - PDP:
       - Create PDP: pdp/create_pdp.md
       - PDP Library: pdp/pdp_library.md

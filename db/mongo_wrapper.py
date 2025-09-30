@@ -24,6 +24,7 @@ from .repositories.roster_repo import RosterRepository
 from .repositories.sessions_repo import SessionsRepository
 from .repositories.pdp_repo import PdpRepository
 from .repositories.player_pdp_repo import PlayerPdpRepository
+from .repositories.injury_repo import InjuryRepository
 
 
 from utils.constants import NameStyle
@@ -66,6 +67,7 @@ class MongoWrapper:
         self.sessions_repo = SessionsRepository(self.db)
         self.pdp_repo = PdpRepository(self.db)
         self.player_pdp_repo = PlayerPdpRepository(self.db)
+        self.injury_repo = InjuryRepository(self.db)    
 
 
 
@@ -896,31 +898,36 @@ class MongoWrapper:
     # --- Injury functions ------------------------------------------------------------
 
     def insert_player_injury(self, injury_doc: dict) -> str:
-        """Insert a new injury document for a player and return the inserted ID."""
-        result = self.db["player_injuries"].insert_one(injury_doc)
-        return str(result.inserted_id)
-
-    def get_player_injuries(self, player_id: str, sort_desc: bool = True) -> list:
-        """Fetch all injuries for a player, sorted by creation date (newest first by default)."""
-        sort_order = -1 if sort_desc else 1
-        return list(
-            self.db["player_injuries"].find({"player_id": player_id}).sort("created_at", sort_order)
-        )
-    
-    def add_injury_comment(self, injury_id: str, text: str, author_email: str) -> None:
-        """Append a comment to an injury's `comments` array."""
         try:
-            now = datetime.now().isoformat()
-            update = {
-                "$push": {"comments": {
-                    "ts": now,
-                    "author": author_email,
-                    "text": text
-                }},
-                "$set": {"last_updated": now}
-            }
-            res = self.db["injuries"].update_one({"injury_id": injury_id}, update)
-            if res.matched_count == 0:
-                raise DatabaseError("Injury not found.")
-        except PyMongoError as e:
-            raise DatabaseError(f"Could not add comment: {e}")
+            return self.injury_repo.insert_player_injury(injury_doc=injury_doc)
+        except (DatabaseError, ApplicationError):
+            raise
+
+    def get_player_injuries(self, player_id: int, sort_desc: bool = True) -> list:
+        try:
+            return self.injury_repo.get_player_injuries(player_id=int(player_id), sort_desc=sort_desc)
+        except (DatabaseError, ApplicationError):
+            raise
+
+    def get_injury_by_id(self, injury_id: str):
+        try:
+            return self.injury_repo.get_injury_by_id(injury_id=injury_id)
+        except (DatabaseError, ApplicationError):
+            raise
+
+    def add_treatment_session(self, injury_id: str, treatment_session: dict, current_status: str, updated_by: str) -> bool:
+        try:
+            return self.injury_repo.add_treatment_session(
+                injury_id=injury_id,
+                treatment_session=treatment_session,
+                current_status=current_status,
+                updated_by=updated_by,
+            )
+        except (DatabaseError, ApplicationError):
+            raise
+
+    def add_injury_comment(self, injury_id: str, text: str, author_email: str) -> bool:
+        try:
+            return self.injury_repo.add_injury_comment(injury_id=injury_id, text=text, author_email=author_email)
+        except (DatabaseError, ApplicationError):
+            raise

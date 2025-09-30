@@ -1,9 +1,24 @@
+"""Injury Overview view (read-only).
+
+This page provides coaches and staff with an overview of all injuries 
+within a selected team. Each injury entry includes core details, current 
+status, and associated treatment sessions.
+
+Data source:
+    - Reads from the `injuries` collection via `InjuryRepo`.
+    - Player display names are resolved from the `roster` collection.
+
+Notes:
+    - Import-safe for mkdocstrings (no side effects at import time).
+    - Editing or creating injuries is handled elsewhere (not in this view).
+"""
+
 from __future__ import annotations
 from typing import Dict, Any, List
 
 import streamlit as st
 
-from db.repositories.injury_repo import InjuryRepo
+from db.repositories.injury_repo import InjuryRepository
 from db.errors import DatabaseError
 from utils.team_selector import team_selector
 from utils.constants import TEAMS
@@ -59,7 +74,7 @@ def render(mongo, user: str):
     id_to_name = {p["player_id"]: p["display_name"] for p in players}
 
     # Fetch injuries for the team
-    repo = InjuryRepo(mongo.db)
+    repo = InjuryRepository(mongo.db)
     try:
         injuries = repo.list_injuries_by_team(team)
     except DatabaseError as e:
