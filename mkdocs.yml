@@ -56,6 +56,7 @@ nav:
       - PDP Structure: admin/pdp_structure.md
       - Attendance: admin/attendance_management.md
       - Injury Management: admin/injury_management.md
+      - Player Measurements: admin/player_measurements.md
   - Dashboards:
       - Wellness Dashboard: dashboards/wellness_dashboard.md
       - RPE Dashboard: dashboards/rpe_dashboard.md
