@@ -125,7 +125,7 @@ def render(mongo, user: str):
                     comment = s.get("comment", "—")
                     status_after = s.get("status_after")
                     status_html = (
-                        f" · <span style='color:#2563eb;font-weight:600;'>{status_after}</span>"
+                        f" · {status_after}"
                         if status_after else ""
                     )
                     with st.expander(f"{sd} — {author}{status_html}", expanded=False):
