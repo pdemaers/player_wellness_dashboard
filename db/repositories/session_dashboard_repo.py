@@ -12,7 +12,7 @@ from typing import Optional, List, Dict, Any, Tuple
 from datetime import date as date_cls
 from datetime import datetime, timedelta    
 import pandas as pd
-# from pymongo.errors import PyMongoError
+from pymongo.errors import PyMongoError
 from db.errors import DatabaseError  # your central error type
 
 
