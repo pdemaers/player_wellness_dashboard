@@ -52,7 +52,7 @@ def render(mongo, user):
                 st.info("No RPE data available.")
             else:
                 pivot_df = acr_df.pivot(index="player_name", columns="week", values="acr")
-                display_df = pivot_df.applymap(format_acr_with_risk)
+                display_df = pivot_df.map(format_acr_with_risk)
 
                 st.dataframe(display_df, use_container_width=True, height=get_table_height(len(display_df)))
 

@@ -163,17 +163,13 @@ def build_attendance_overview_df(
         session_dates = session_dates[-limit:]
 
     # --- fetch roster ---
-    roster = mongo.get_roster_players(team=team)
-    players = []
-    for p in roster:
-        pid = p.get("player_id")
-        try:
-            pid = int(pid)
-        except Exception:
-            pass
-        name = f"{p.get('player_last_name', p.get('last_name','')).upper()}, {p.get('player_first_name', p.get('first_name',''))}".strip(", ")
-        players.append({"player_id": pid, "name": name})
-    players.sort(key=lambda x: x["name"])
+    players = mongo.get_player_names(team=team, style="LAST_FIRST")
+
+    # normalize output to match old structure
+    players = [
+        {"player_id": p["player_id"], "name": p["display_name"]}
+        for p in players
+    ]
 
     # --- build icon maps ---
     absence_meta = absence_meta or []
@@ -342,24 +338,24 @@ def render(mongo, user):
     with tab2:
         st.subheader(":material/table_chart: Attendance Overview")
 
-      # Attendance filter: last 7, 14, or all days
-    filter_option = st.selectbox(
-        "Show attendance for:",
-        options=[
-            "Last 7 days",
-            "Last 14 days",
-            "All days"
-        ],
-        width=200,
-        index=0  # default to last 7 days
-    )
+        # Attendance filter: last 7, 14, or all days
+        filter_option = st.selectbox(
+            "Show attendance for:",
+            options=[
+                "Last 7 days",
+                "Last 14 days",
+                "All days"
+            ],
+            width=200,
+            index=0  # default to last 7 days
+        )
 
-    if "7 days" in filter_option:
-        limit = 7
-    elif "14 days" in filter_option:
-        limit = 14
-    else:
-        limit = None  # show all days
+        if "7 days" in filter_option:
+            limit = 7
+        elif "14 days" in filter_option:
+            limit = 14
+        else:
+            limit = None  # show all days
 
         try:
             df_overview = build_attendance_overview_df(

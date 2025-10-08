@@ -30,6 +30,8 @@ plugins:
             show_signature_annotations: true
             merge_init_into_class: true
             show_source: true
+            separate_signature: true
+            summary: true
   - git-revision-date-localized:
       fallback_to_build_date: true
 
@@ -61,6 +63,7 @@ nav:
       - Wellness Dashboard: dashboards/wellness_dashboard.md
       - RPE Dashboard: dashboards/rpe_dashboard.md
       - Session Dashboard: dashboards/session_dashboard.md
+      - Injury Overview: dashboards/injury_overview.md
   - PDP:
       - Create PDP: pdp/create_pdp.md
       - PDP Library: pdp/pdp_library.md
@@ -70,5 +73,9 @@ nav:
       - Glossary: data/glossary.md
   - Reference:
       - Technical reference: reference/api.md
+      - Repositories (DB layer): reference/repositories.md
+      - Services (Business layer): reference/services.md
+      - Errors: reference/errors.md
+      - Legacy MongoWrapper: reference/legacy_mongo_wrapper.md
       - Changelog: reference/changelog.md
   - Contributing: contributing.md

@@ -29,11 +29,16 @@ def render(mongo, user):
                 wellness_entries = mongo.get_today_wellness_entries(team)
 
                 # Get roster (only for display mapping)
-                roster = mongo.get_roster_players(team=team)
-                player_map = {
-                    int(p["player_id"]): f"{p['player_last_name']}, {p['player_first_name']}"
-                    for p in roster
-                }
+
+                # Get roster (for display mapping) — use standardized display_name
+                roster = mongo.get_player_names(team=team, style="LAST_FIRST", include_inactive=True)
+                player_map = {int(p["player_id"]): p["display_name"] for p in roster}
+
+                # roster = mongo.get_roster_players(team=team)
+                # player_map = {
+                #     int(p["player_id"]): f"{p['player_last_name']}, {p['player_first_name']}"
+                #     for p in roster
+                # }
 
                 # Build DataFrame
                 rows = []
