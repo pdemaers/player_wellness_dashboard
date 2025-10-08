@@ -11,7 +11,7 @@ Auto-generated from docstrings using **mkdocstrings**.
 ::: db.repositories.roster_repo.RosterRepository
 
 ### Session Repository
-::: db.repositories.session_repo.SessionsRepository
+::: db.repositories.sessions_repo.SessionsRepository
 
 ### Wellness Repository
 ::: db.repositories.wellness_dash_repo.WellnessDashboardRepository
