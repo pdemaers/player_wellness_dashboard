@@ -69,7 +69,9 @@ nav:
       - PDP Library: pdp/pdp_library.md
   - Data:
       - Data Model: reference/data-model.md
+      - RPE Data Quality: data/rpe_data_quality.md
       - Pipeline (Reg → Dashboard): data/pipeline.md
+      - Legacy Mongo Wrapper: reference/legacy_mongo_wrapper_old.md
       - Glossary: data/glossary.md
   - Reference:
       - Technical reference: reference/api.md

@@ -39,7 +39,7 @@ class SessionsDashboardRepository:
                - get_session_rpe_aggregates(team=...)  (existing helper)
     """
 
-    def __init__(self, mongo):
+    def __init__(self, mongo: any):
         self.mongo = mongo
 
     def get_session_rpe_aggregates_df(self, team: str) -> pd.DataFrame:
