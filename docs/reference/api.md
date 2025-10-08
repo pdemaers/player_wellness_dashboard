@@ -17,7 +17,7 @@ Auto-generated from docstrings using **mkdocstrings**.
 ::: db.repositories.wellness_dash_repo.WellnessDashboardRepository
 
 ### RPE Repository
-::: db.repositories.rpe_dashboard_repo.RpeRepository
+::: db.repositories.rpe_dashboard_repo.RpeDashboardRepository
 
 ### Injury Repository
 ::: db.repositories.injury_repo.InjuryRepository
