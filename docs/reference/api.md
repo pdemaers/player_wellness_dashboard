@@ -8,22 +8,22 @@ Auto-generated from docstrings using **mkdocstrings**.
 ## Database Repositories
 
 ### Roster Repository
-::: db.repositories.roster_repo.RosterRepo
+::: db.repositories.roster_repo.RosterRepository
 
 ### Session Repository
-::: db.repositories.session_repo.SessionRepo
+::: db.repositories.session_repo.SessionRepository
 
 ### Wellness Repository
-::: db.repositories.wellness_repo.WellnessRepo
+::: db.repositories.wellness_repo.WellnessRepository
 
 ### RPE Repository
-::: db.repositories.rpe_repo.RpeRepo
+::: db.repositories.rpe_repo.RpeRepository
 
 ### Injury Repository
-::: db.repositories.injury_repo.InjuryRepo
+::: db.repositories.injury_repo.InjuryRepository
 
 ### PDP Repository
-::: db.repositories.pdp_repo.PdpRepo
+::: db.repositories.pdp_repo.PdpRepository
 
 ## Views
 ::: views.roster_management
