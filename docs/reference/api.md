@@ -5,8 +5,25 @@ Auto-generated from docstrings using **mkdocstrings**.
 > Ensure your module is importable at build time.
 > If `mongo_wrapper.py` is at repo root, this will work without packaging.
 
-## Database
-::: db.mongo_wrapper.MongoWrapper
+## Database Repositories
+
+### Roster Repository
+::: db.repositories.roster_repo.RosterRepo
+
+### Session Repository
+::: db.repositories.session_repo.SessionRepo
+
+### Wellness Repository
+::: db.repositories.wellness_repo.WellnessRepo
+
+### RPE Repository
+::: db.repositories.rpe_repo.RpeRepo
+
+### Injury Repository
+::: db.repositories.injury_repo.InjuryRepo
+
+### PDP Repository
+::: db.repositories.pdp_repo.PdpRepo
 
 ## Views
 ::: views.roster_management
