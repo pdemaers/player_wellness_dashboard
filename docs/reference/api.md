@@ -14,7 +14,7 @@ Auto-generated from docstrings using **mkdocstrings**.
 ::: db.repositories.sessions_repo.SessionsRepository
 
 ### Session Dashboard Repository
-::: db.repositories.session_dashboard_repo.SessionDashboardRepository
+::: db.repositories.session_dashboard_repo.SessionsDashboardRepository
 
 ### Wellness Repository
 ::: db.repositories.wellness_dash_repo.WellnessDashboardRepository
