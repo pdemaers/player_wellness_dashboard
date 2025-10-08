@@ -13,17 +13,29 @@ Auto-generated from docstrings using **mkdocstrings**.
 ### Session Repository
 ::: db.repositories.sessions_repo.SessionsRepository
 
+### Session Dashboard Repository
+::: db.repositories.session_dashboard_repo.SessionDashboardRepository
+
 ### Wellness Repository
 ::: db.repositories.wellness_dash_repo.WellnessDashboardRepository
 
 ### RPE Repository
 ::: db.repositories.rpe_dashboard_repo.RpeDashboardRepository
 
+### Attendance Repository
+::: db.repositories.attendance_repo.AttendanceRepository
+
 ### Injury Repository
 ::: db.repositories.injury_repo.InjuryRepository
 
 ### PDP Repository
 ::: db.repositories.pdp_repo.PdpRepository
+
+### Player PDP Repository
+::: db.repositories.player_pdp_repo.PlayerPdpRepository 
+
+### Attendance / Match Minutes Repository
+::: db.repositories.attendance_repo.AttendanceRepository
 
 ## Views
 ::: views.roster_management
