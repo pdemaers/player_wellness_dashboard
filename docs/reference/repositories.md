@@ -48,5 +48,3 @@ Business logic should live in Services (if present), not here.
         - insert_new_pdp
       show_docstring_description: true
 
-## Attendance / Match Minutes
-::: db.repositories.attendance_repo.MatchMinutesRepository
