@@ -5,11 +5,11 @@ from datetime import date
 from utils.team_selector import team_selector
 from utils.constants import TEAMS
 
-from db.repositories.session_dashboard_repo import (
-    get_session_rpe_aggregates_df,
-    get_rpe_joined_per_session_df,
-    DatabaseError,
-)
+# from db.repositories.session_dashboard_repo import (
+#     get_session_rpe_aggregates_df,
+#     get_rpe_joined_per_session_df,
+#     DatabaseError,
+# )
 from charts.session_dashboard_graphs import (
     rpe_boxplot_per_session,
     rpe_outliers_table,
@@ -19,15 +19,31 @@ from charts.session_dashboard_graphs import (
 )
 
 
+from db.repositories.session_dashboard_repo import SessionsDashboardRepo
+
 # ✅ Underscore the unhashable argument here
 @st.cache_data(show_spinner=False)
 def _load_aggregates(_mongo, team: str) -> pd.DataFrame:
-    return get_session_rpe_aggregates_df(_mongo, team)
+    """Load session aggregates via SessionsDashboardRepo."""
+    repo = SessionsDashboardRepo(_mongo)
+    return repo.get_session_rpe_aggregates_df(team)
 
 
 @st.cache_data(show_spinner=False)
-def _load_rpe_per_session(_mongo, team: str, use_range: bool, dt_from: date | None, dt_to: date | None) -> pd.DataFrame:
-    return get_rpe_joined_per_session_df(_mongo, team, dt_from if use_range else None, dt_to if use_range else None)
+def _load_rpe_per_session(
+    _mongo,
+    team: str,
+    use_range: bool,
+    dt_from: date | None,
+    dt_to: date | None
+) -> pd.DataFrame:
+    """Load per-session RPE data via SessionsDashboardRepo."""
+    repo = SessionsDashboardRepo(_mongo)
+    return repo.get_rpe_joined_per_session_df(
+        team=team,
+        date_from=dt_from if use_range else None,
+        date_to=dt_to if use_range else None,
+    )
 
 
 def render(mongo, user):

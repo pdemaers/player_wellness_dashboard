@@ -28,6 +28,8 @@ from .repositories.injury_repo import InjuryRepository
 from .repositories.wellness_dash_repo import WellnessDashboardRepository
 from .repositories.rpe_dashboard_repo import RpeDashboardRepository
 from .repositories.attendance_repo import AttendanceRepository
+from .repositories.session_dashboard_repo import SessionsDashboardRepository
+
 
 
 from utils.constants import NameStyle
@@ -71,10 +73,11 @@ class MongoWrapper:
         self.pdp_repo = PdpRepository(self.db)
         self.player_pdp_repo = PlayerPdpRepository(self.db)
         self.injury_repo = InjuryRepository(self.db)
-        self.session_dashboard_repo = SessionsRepository(self.db)  # reuse sessions repo for session dashboard      
+#        self.session_dashboard_repo = SessionsRepository(self.db)  # reuse sessions repo for session dashboard      
         self.wellness_dash_repo = WellnessDashboardRepository(self.db)  # wellness dashboard repo
         self.rpe_dash_repo = RpeDashboardRepository(self.db)  # RPE dashboard repo
         self.attendance_repo = AttendanceRepository(self.db)  # attendance repo
+        self.session_dashboard_repo = SessionsDashboardRepository(self.db)  # session dashboard repo
 
 
 
