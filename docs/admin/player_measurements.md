@@ -53,3 +53,4 @@ One document per `(team, date)`:
   "last_updated": "2025-09-30T10:12:00Z",
   "user": "analyst@example.com"
 }
+```
