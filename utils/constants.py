@@ -66,6 +66,7 @@ PAGE_ICONS = {
     "Attendance": "person-check",
     "Injury Management": "hospital",
     "Injury Overview": "list-check",
+    "Measurements": "rulers",
     "RPE data quality": "database-fill-exclamation"
 }
 
@@ -74,7 +75,7 @@ ROLE_ALLOWED_PAGES = {
         "Roster Management", "Session Management", "PDP Structure",
         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",
         "Create PDP", "PDP Library", "Attendance", "Injury Management",
-        "Injury Overview", "RPE data quality"
+        "Injury Overview", "Measurements", "RPE data quality"
     ],
     "coach": [
         "Wellness Dashboard", "RPE Dashboard", "Session Dashboard",

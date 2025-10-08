@@ -17,7 +17,8 @@ from views import (
     attendance_management,
     injury_management,
     injury_overview,
-    rpe_data_quality
+    rpe_data_quality,
+    player_measurements
 )
 
 
@@ -34,6 +35,7 @@ PAGES = {
     "Attendance":        lambda mongo, user: attendance_management.render(mongo, user=user),
     "Injury Management": lambda mongo, user: injury_management.render(mongo, user=user),
     "Injury Overview":   lambda mongo, user: injury_overview.render(mongo, user=user),  
+    "Measurements":      lambda mongo, user: player_measurements.render(mongo, user=user),
     "RPE data quality":  lambda mongo, user: rpe_data_quality.render(mongo, user=user),
 }
 
