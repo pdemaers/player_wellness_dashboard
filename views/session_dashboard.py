@@ -4,6 +4,7 @@ from datetime import date
 
 from utils.team_selector import team_selector
 from utils.constants import TEAMS
+from db.errors import DatabaseError, ApplicationError
 
 # from db.repositories.session_dashboard_repo import (
 #     get_session_rpe_aggregates_df,
@@ -19,13 +20,13 @@ from charts.session_dashboard_graphs import (
 )
 
 
-from db.repositories.session_dashboard_repo import SessionsDashboardRepo
+from db.repositories.session_dashboard_repo import SessionsDashboardRepository
 
 # ✅ Underscore the unhashable argument here
 @st.cache_data(show_spinner=False)
 def _load_aggregates(_mongo, team: str) -> pd.DataFrame:
     """Load session aggregates via SessionsDashboardRepo."""
-    repo = SessionsDashboardRepo(_mongo)
+    repo = SessionsDashboardRepository(_mongo)
     return repo.get_session_rpe_aggregates_df(team)
 
 
@@ -38,7 +39,7 @@ def _load_rpe_per_session(
     dt_to: date | None
 ) -> pd.DataFrame:
     """Load per-session RPE data via SessionsDashboardRepo."""
-    repo = SessionsDashboardRepo(_mongo)
+    repo = SessionsDashboardRepository(_mongo)
     return repo.get_rpe_joined_per_session_df(
         team=team,
         date_from=dt_from if use_range else None,
