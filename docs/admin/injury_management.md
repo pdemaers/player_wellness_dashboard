@@ -42,3 +42,4 @@ Each treatment session is appended to that injury’s `treatment_sessions` array
   "updated_by": "physio@club.tld",
   "updated_at": "2025-09-16T07:40:21Z"
 }
+```
