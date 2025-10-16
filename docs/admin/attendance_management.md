@@ -80,3 +80,4 @@ Attendance is stored in the `attendance` collection, one document per session:
   "last_updated": "2025-09-01T08:35:00Z",
   "user": "Coach Name"
 }
+```
