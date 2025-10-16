@@ -182,6 +182,15 @@ def render(mongo, user):
                     cols = st.columns(2)
                     for j, (label, value) in enumerate(items[i:i+2]):
                         with cols[j]:
+                            # --- format dates nicely ---
+                            if isinstance(value, (datetime, date)):
+                                value = value.strftime("%d/%m/%Y")
+                            elif isinstance(value, str):
+                                # Handle ISO strings if MongoDB returns them that way
+                                try:
+                                    value = datetime.fromisoformat(value).strftime("%d/%m/%Y")
+                                except Exception:
+                                    pass
                             st.markdown(f"**{label}:** {value if value not in (None, '', []) else '—'}")
 
                 # Optional: show previous treatment sessions (if you store them)
