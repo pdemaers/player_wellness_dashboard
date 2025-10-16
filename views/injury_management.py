@@ -69,7 +69,7 @@ def render(mongo, user):
             # Doctor visit date, doctor name, imagery type side by side
             col3, col4, col5 = st.columns(3)
             with col3:
-                doctor_visit_date = st.date_input("Date of Doctor Visit (optional)", value=None)
+                doctor_visit_date = st.date_input("Date of Doctor Visit (optional)", format="DD/MM/YYYY", value=None)
             with col4:
                 doctor_name = st.text_input("Name of Doctor Visited (optional)")
             with col5:
