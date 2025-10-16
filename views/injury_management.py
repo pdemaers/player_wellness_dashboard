@@ -139,7 +139,7 @@ def render(mongo, user):
             def _label(injury: dict) -> str:
                 d = injury.get("injury_date")
                 if isinstance(d, datetime):
-                    ds = d.strftime("%Y-%m-%d")
+                    ds = d.strftime("%d/%m/%Y")
                 else:
                     ds = str(d) if d else "—"
                 desc = (injury.get("description") or "")[:40]
@@ -215,7 +215,7 @@ def render(mongo, user):
 
                     for s in prior_sessions:
                         sd = _to_dt(s.get("session_date"))
-                        sd_label = sd.strftime("%Y-%m-%d") if sd else "—"
+                        sd_label = sd.strftime("%d/%m/%Y") if sd else "—"
                         author = s.get("created_by", "—")
                         txt = s.get("comment", "—")
                         with st.expander(f"{sd_label} — {author}"):
@@ -229,7 +229,7 @@ def render(mongo, user):
                 # Two columns: date (left) + current status (right)
                 c1, c2 = st.columns(2)
                 with c1:
-                    treatment_session_date = st.date_input("Treatment Session Date", value=date.today())
+                    treatment_session_date = st.date_input("Treatment Session Date", value=date.today(), format="DD/MM/YYYY")
 
                 with c2:
                     # Preselect current status if present on the injury, else the first option
