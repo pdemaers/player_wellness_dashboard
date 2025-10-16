@@ -101,6 +101,7 @@ INJURY_STATUS = [
     "Symptom-Limited Activity",
     "Light Aerobic Activity",
     "Sport-Specific Exercise (non-contact)",
+    "Indoor Rehab",
     "Non-Contact Training Drills & Resistance Training",
     "Full Contact Practice and Training",
     "Return To Game Play",
