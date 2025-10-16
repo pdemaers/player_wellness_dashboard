@@ -57,7 +57,7 @@ def render(mongo, user):
         st.subheader(":material/assist_walker: Register New Injury")
 
         with st.form("register_injury_form", clear_on_submit=True):
-            injury_date = st.date_input("Date of Injury", value=date.today(), width=200)
+            injury_date = st.date_input("Date of Injury", value=date.today(), format="DD/MM/YYYY", width=200)
 
             # Description and Diagnostic side by side
             col1, col2 = st.columns(2)

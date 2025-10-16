@@ -15,6 +15,7 @@ Notes:
 
 from __future__ import annotations
 from typing import Dict, Any, List
+from datetime import datetime, date
 
 import streamlit as st
 
@@ -25,6 +26,7 @@ from utils.constants import TEAMS
 
 
 # --- helper: shaded two-column details ----------------------------------------
+
 def _render_injury_details_two_col(injury: Dict[str, Any], comments_str: str | None = None):
     """Shaded two-column block, highlights Current Status."""
     details = {
@@ -48,13 +50,24 @@ def _render_injury_details_two_col(injury: Dict[str, Any], comments_str: str | N
                 with cols[j]:
                     if label == "Current Status":
                         st.markdown(
-                            f"**{label}:** {val}",
+                            f"**{label}: {val}**",
                             unsafe_allow_html=True,
                         )
                     else:
                         st.markdown(f"**{label}:** {val}")
 
+# --- helper: convert to datetime and format -----------------------------------
 
+def _fmt_date(value: Any) -> str:
+    """Format date or datetime into DD/MM/YYYY string."""
+    if isinstance(value, (datetime, date)):
+        return value.strftime("%d/%m/%Y")
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value).strftime("%d/%m/%Y")
+        except Exception:
+            return value  # return as-is if not parseable
+    return str(value) if value not in (None, "", []) else "—"
 
 # --- main render --------------------------------------------------------------
 def render(mongo, user: str):
@@ -105,6 +118,12 @@ def render(mongo, user: str):
             else:
                 comments_str = str(raw_comments) if raw_comments else ""
 
+            # Format key injury dates before rendering
+            if inj.get("injury_date"):
+                inj["injury_date"] = _fmt_date(inj["injury_date"])
+            if inj.get("doctor_visit_date"):
+                inj["doctor_visit_date"] = _fmt_date(inj["doctor_visit_date"])
+
             st.subheader(":material/assist_walker: Injury Details")
             _render_injury_details_two_col(inj, comments_str=comments_str)
 
@@ -120,7 +139,7 @@ def render(mongo, user: str):
                     pass
 
                 for s in sessions:
-                    sd = s.get("session_date", "—")
+                    sd = _fmt_date(s.get("session_date", "—"))
                     author = s.get("created_by", "—")
                     comment = s.get("comment", "—")
                     status_after = s.get("status_after")
