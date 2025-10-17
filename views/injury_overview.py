@@ -98,7 +98,7 @@ def render(mongo, user: str):
         st.info("No injuries registered for this team.", icon=":material/info:")
         return
 
-    st.caption(f"Showing {len(injuries)} injuries — newest first")
+    st.caption(f"Showing {len(injuries)} injuries — last updated first")
 
     # Render each injury in an expander
     for inj in injuries:
