@@ -226,19 +226,43 @@ def render(mongo, user):
             st.subheader(":material/healing: Add Treatment Session")
             with st.form("add_treatment_session_form", clear_on_submit=True):
 
-                # Two columns: date (left) + current status (right)
-                c1, c2 = st.columns(2)
+                # Three columns: date (left) + current status (middle) + condition training (right)
+                c1, c2, c3 = st.columns(3)
                 with c1:
-                    treatment_session_date = st.date_input("Treatment Session Date", value=date.today(), format="DD/MM/YYYY")
+                    treatment_session_date = st.date_input(
+                        "Treatment Session Date",
+                        value=date.today(),
+                        format="DD/MM/YYYY",
+                    )
 
                 with c2:
                     # Preselect current status if present on the injury, else the first option
                     _current = selected_injury.get("current_status")
-                    if _current in INJURY_STATUS:
-                        _idx = INJURY_STATUS.index(_current)
-                    else:
-                        _idx = 0
+                    _idx = INJURY_STATUS.index(_current) if _current in INJURY_STATUS else 0
                     current_injury_status = st.selectbox("Current Injury Status", INJURY_STATUS, index=_idx)
+
+                with c3:
+                    # Conditioning options (default to "None")
+                    CT_OPTIONS = ["Run", "Bike", "Swim", "None"]
+                    condition_training_raw = st.multiselect(
+                        "Condition training allowed",
+                        options=CT_OPTIONS,
+                        default=["None"],
+                        help="Select which conditioning forms are allowed during rehab. "
+                            "Choose 'None' if no conditioning is allowed.",
+                    )
+
+                    # Normalize selection:
+                    # - If 'None' is selected with others, keep only the others.
+                    # - If only 'None' is selected, store an empty list to mean 'no conditioning allowed'.
+                    _has_others = any(o in condition_training_raw for o in ["Run", "Bike", "Swim"])
+                    if "None" in condition_training_raw and _has_others:
+                        # Drop 'None' if actual modes are chosen
+                        condition_training_allowed = [o for o in condition_training_raw if o != "None"]
+                    elif condition_training_raw == ["None"]:
+                        condition_training_allowed = []  # explicit 'no conditioning allowed'
+                    else:
+                        condition_training_allowed = condition_training_raw
 
                 treatment_session_comment = st.text_area(
                     "Treatment Session Comments",
@@ -256,6 +280,7 @@ def render(mongo, user):
                             "session_date": treatment_session_date,           # date|datetime|ISO ok
                             "comment": treatment_session_comment.strip(),
                             "status_after": current_injury_status,            # optional; repo defaults it anyway
+                            "condition_training_allowed": condition_training_allowed,  # list[str], empty => none allowed
                             "created_by": user,
                             "created_at": datetime.utcnow(),
                         }
